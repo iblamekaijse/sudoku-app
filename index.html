@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
+
+    <meta
+        name="theme-color"
+        content="#f7f7f8"
+        media="(prefers-color-scheme: light)"
+    >
+
+    <meta
+        name="theme-color"
+        content="#111214"
+        media="(prefers-color-scheme: dark)"
+    >
+
+    <meta
+        name="description"
+        content="Минималистичное приложение Судоку"
+    >
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="default"
+    >
+
+    <title>Судоку</title>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app" id="app">
+
+        <!-- =========================
+             HEADER
+        ========================== -->
+        <header class="topbar">
+
+            <button
+                class="icon-button"
+                id="settingsButton"
+                type="button"
+                aria-label="Настройки"
+                title="Настройки"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    width="22"
+                    height="22"
+                    aria-hidden="true"
+                >
+                    <path
+                        d="M12 8.3A3.7 3.7 0 1 0 12 15.7A3.7 3.7 0 0 0 12 8.3Z"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                    />
+                    <path
+                        d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06-1.72 1.72-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V20h-2.44v-.19a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06L8 16.93l.06-.06A1.7 1.7 0 0 0 8.4 15a1.7 1.7 0 0 0-1.56-1.03H6v-2.44h.84A1.7 1.7 0 0 0 8.4 10.5a1.7 1.7 0 0 0-.34-1.87L8 8.57 9.72 6.85l.06.06a1.7 1.7 0 0 0 1.87.34 1.7 1.7 0 0 0 1.03-1.56V5h2.44v.69a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06 1.72 1.72-.06.06A1.7 1.7 0 0 0 19.4 10.5a1.7 1.7 0 0 0 1.56 1.03H21v2.44h-.04A1.7 1.7 0 0 0 19.4 15Z"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linejoin="round"
+                    />
+                </svg>
+            </button>
+
+            <div class="topbar-title">
+                <h1>Судоку</h1>
+                <span id="difficultyLabel">Легкий</span>
+            </div>
+
+            <button
+                class="icon-button"
+                id="statsButton"
+                type="button"
+                aria-label="Статистика"
+                title="Статистика"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    width="22"
+                    height="22"
+                    aria-hidden="true"
+                >
+                    <path
+                        d="M5 19V10M12 19V5M19 19v-7"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                    />
+                </svg>
+            </button>
+
+        </header>
+
+
+        <!-- =========================
+             MAIN
+        ========================== -->
+        <main class="game">
+
+            <!-- GAME INFO -->
+            <section class="game-info" aria-label="Информация об игре">
+
+                <div class="info-item">
+                    <span class="info-label">Время</span>
+
+                    <span
+                        class="info-value"
+                        id="timer"
+                        aria-live="polite"
+                    >
+                        00:00
+                    </span>
+                </div>
+
+                <div class="info-item lives-container">
+                    <span class="info-label">Ошибки</span>
+
+                    <div
+                        class="lives"
+                        id="lives"
+                        aria-label="Осталось три ошибки"
+                    >
+                        <span class="life-dot active"></span>
+                        <span class="life-dot active"></span>
+                        <span class="life-dot active"></span>
+                    </div>
+                </div>
+
+                <button
+                    class="pause-button"
+                    id="pauseButton"
+                    type="button"
+                    aria-label="Пауза"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="18"
+                        height="18"
+                        aria-hidden="true"
+                    >
+                        <rect
+                            x="6"
+                            y="5"
+                            width="4"
+                            height="14"
+                            rx="1"
+                            fill="currentColor"
+                        />
+                        <rect
+                            x="14"
+                            y="5"
+                            width="4"
+                            height="14"
+                            rx="1"
+                            fill="currentColor"
+                        />
+                    </svg>
+
+                    <span>Стоп</span>
+                </button>
+
+            </section>
+
+
+            <!-- =========================
+                 SUDOKU BOARD
+            ========================== -->
+            <section
+                class="board-wrapper"
+                id="boardWrapper"
+                aria-label="Игровое поле Судоку"
+            >
+
+                <div
+                    class="sudoku-board"
+                    id="sudokuBoard"
+                    role="grid"
+                    aria-label="Поле 9 на 9"
+                >
+                    <!--
+                        Клетки создаются JavaScript.
+                        Всего будет 81 клетка.
+                    -->
+                </div>
+
+            </section>
+
+
+            <!-- =========================
+                 SMART HINT
+            ========================== -->
+            <div
+                class="smart-hint"
+                id="smartHint"
+                aria-live="polite"
+                aria-hidden="true"
+            >
+                <span
+                    class="smart-hint-dot"
+                    aria-hidden="true"
+                ></span>
+
+                <span id="smartHintText"></span>
+            </div>
+
+
+            <!-- =========================
+                 TOOLBAR
+            ========================== -->
+            <section class="tools" aria-label="Инструменты">
+
+                <button
+                    class="tool-button"
+                    id="notesButton"
+                    type="button"
+                    aria-pressed="false"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="21"
+                        height="21"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M4.5 19.5 5.2 15 15.9 4.3a1.9 1.9 0 0 1 2.7 0l1.1 1.1a1.9 1.9 0 0 1 0 2.7L9 18.8l-4.5.7Z"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linejoin="round"
+                        />
+                        <path
+                            d="m14.7 5.5 3.8 3.8"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                        />
+                    </svg>
+
+                    <span>Карандаш</span>
+                </button>
+
+
+                <button
+                    class="tool-button"
+                    id="eraseButton"
+                    type="button"
+                    aria-label="Удалить значение"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="21"
+                        height="21"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="m7.2 7.2 9.6 9.6M16.8 7.2l-9.6 9.6"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                        />
+                    </svg>
+
+                    <span>Удалить</span>
+                </button>
+
+
+                <button
+                    class="tool-button"
+                    id="newGameButton"
+                    type="button"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="21"
+                        height="21"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M20 11a8 8 0 0 0-14.9-3.9L4 9"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                        <path
+                            d="M4 4v5h5"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                        <path
+                            d="M4 13a8 8 0 0 0 14.9 3.9L20 15"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                        <path
+                            d="M20 20v-5h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+
+                    <span>Новая игра</span>
+                </button>
+
+            </section>
+
+
+            <!-- =========================
+                 NUMBER PAD
+            ========================== -->
+            <section
+                class="number-pad"
+                id="numberPad"
+                aria-label="Цифры"
+            >
+                <button
+                    class="number-button"
+                    data-number="1"
+                    type="button"
+                    aria-label="Цифра 1"
+                >
+                    1
+                </button>
+
+                <button
+                    class="number-button"
+                    data-number="2"
+                    type="button"
+                    aria-label="Цифра 2"
+                >
+                    2
+                </button>
+
+                <button
+                    class="number-button"
+                    data-number="3"
+                    type="button"
+                    aria-label="Цифра 3"
+                >
+                    3
+                </button>
+
+                <button
+                    class="number-button"
+                    data-number="4"
+                    type="button"
+                    aria-label="Цифра 4"
+                >
+                    4
+                </button>
+
+                <button
+                    class="number-button"
+                    data-number="5"
+                    type="button"
+                    aria-label="Цифра 5"
+                >
+                    5
+                </button>
+
+                <button
+                    class="number-button"
+                    data-number="6"
+                    type="button"
+                    aria-label="Цифра 6"
+                >
+                    6
+                </button>
+
+                <button
+                    class="number-button"
+                    data-number="7"
+                    type="button"
+                    aria-label="Цифра 7"
+                >
+                    7
+                </button>
+
+                <button
+                    class="number-button"
+                    data-number="8"
+                    type="button"
+                    aria-label="Цифра 8"
+                >
+                    8
+                </button>
+
+                <button
+                    class="number-button"
+                    data-number="9"
+                    type="button"
+                    aria-label="Цифра 9"
+                >
+                    9
+                </button>
+            </section>
+
+        </main>
+
+
+        <!-- =========================
+             PAUSE OVERLAY
+        ========================== -->
+        <div
+            class="overlay pause-overlay"
+            id="pauseOverlay"
+            aria-hidden="true"
+        >
+
+            <div class="overlay-card">
+
+                <div class="overlay-icon">
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="30"
+                        height="30"
+                        aria-hidden="true"
+                    >
+                        <rect
+                            x="6.5"
+                            y="5"
+                            width="4"
+                            height="14"
+                            rx="1"
+                            fill="currentColor"
+                        />
+                        <rect
+                            x="13.5"
+                            y="5"
+                            width="4"
+                            height="14"
+                            rx="1"
+                            fill="currentColor"
+                        />
+                    </svg>
+                </div>
+
+                <h2>Пауза</h2>
+
+                <p>
+                    Игра остановлена
+                </p>
+
+                <button
+                    class="primary-button"
+                    id="resumeButton"
+                    type="button"
+                >
+                    Продолжить
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             GAME OVER OVERLAY
+        ========================== -->
+        <div
+            class="overlay"
+            id="gameOverOverlay"
+            aria-hidden="true"
+        >
+
+            <div class="overlay-card">
+
+                <div class="overlay-icon error-icon">
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="30"
+                        height="30"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M12 4 21 20H3L12 4Z"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linejoin="round"
+                        />
+
+                        <path
+                            d="M12 9v5"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                        />
+
+                        <circle
+                            cx="12"
+                            cy="17"
+                            r="1"
+                            fill="currentColor"
+                        />
+                    </svg>
+                </div>
+
+                <h2>Игра окончена</h2>
+
+                <p>
+                    Допущено 3 ошибки
+                </p>
+
+                <button
+                    class="primary-button"
+                    id="gameOverNewGameButton"
+                    type="button"
+                >
+                    Новая игра
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             WIN OVERLAY
+        ========================== -->
+        <div
+            class="overlay"
+            id="winOverlay"
+            aria-hidden="true"
+        >
+
+            <div class="overlay-card">
+
+                <div class="overlay-icon success-icon">
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="30"
+                        height="30"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="m5.5 12.5 4 4L18.5 7.5"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                </div>
+
+                <h2>Судоку решено</h2>
+
+                <div class="win-time">
+                    <span>Твое время</span>
+                    <strong id="winTime">00:00</strong>
+                </div>
+
+                <button
+                    class="primary-button"
+                    id="winNewGameButton"
+                    type="button"
+                >
+                    Новая игра
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             SETTINGS PANEL
+        ========================== -->
+        <div
+            class="side-panel"
+            id="settingsPanel"
+            aria-hidden="true"
+        >
+
+            <div class="panel-header">
+
+                <h2>Настройки</h2>
+
+                <button
+                    class="icon-button close-button"
+                    id="closeSettingsButton"
+                    type="button"
+                    aria-label="Закрыть настройки"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="22"
+                        height="22"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M6 6 18 18M18 6 6 18"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                        />
+                    </svg>
+                </button>
+
+            </div>
+
+
+            <div class="panel-content">
+
+                <section class="settings-section">
+
+                    <h3>Тема</h3>
+
+                    <div
+                        class="theme-selector"
+                        id="themeSelector"
+                    >
+
+                        <button
+                            class="theme-option active"
+                            type="button"
+                            data-theme="system"
+                            aria-pressed="true"
+                        >
+                            <span class="theme-option-title">
+                                Системная
+                            </span>
+
+                            <span class="theme-option-description">
+                                Как на телефоне
+                            </span>
+                        </button>
+
+
+                        <button
+                            class="theme-option"
+                            type="button"
+                            data-theme="light"
+                            aria-pressed="false"
+                        >
+                            <span class="theme-option-title">
+                                Светлая
+                            </span>
+
+                            <span class="theme-option-description">
+                                Светлый интерфейс
+                            </span>
+                        </button>
+
+
+                        <button
+                            class="theme-option"
+                            type="button"
+                            data-theme="dark"
+                            aria-pressed="false"
+                        >
+                            <span class="theme-option-title">
+                                Темная
+                            </span>
+
+                            <span class="theme-option-description">
+                                Темный интерфейс
+                            </span>
+                        </button>
+
+                    </div>
+
+                </section>
+
+
+                <section class="settings-section">
+
+                    <h3>Обратная связь</h3>
+
+                    <label class="setting-row">
+
+                        <span>
+                            <span class="setting-title">
+                                Звуки
+                            </span>
+
+                            <span class="setting-description">
+                                Звуки нажатий и ошибок
+                            </span>
+                        </span>
+
+                        <input
+                            type="checkbox"
+                            class="switch-input"
+                            id="soundToggle"
+                            checked
+                        >
+
+                        <span class="switch" aria-hidden="true"></span>
+
+                    </label>
+
+
+                    <label class="setting-row">
+
+                        <span>
+                            <span class="setting-title">
+                                Вибрация
+                            </span>
+
+                            <span class="setting-description">
+                                Тактильная обратная связь
+                            </span>
+                        </span>
+
+                        <input
+                            type="checkbox"
+                            class="switch-input"
+                            id="vibrationToggle"
+                            checked
+                        >
+
+                        <span class="switch" aria-hidden="true"></span>
+
+                    </label>
+
+                </section>
+
+
+                <section class="settings-section">
+
+                    <h3>Игра</h3>
+
+                    <button
+                        class="settings-action"
+                        id="clearSavedGameButton"
+                        type="button"
+                    >
+                        <span>
+                            <span class="setting-title">
+                                Сбросить сохраненную игру
+                            </span>
+
+                            <span class="setting-description">
+                                Начать текущий уровень заново
+                            </span>
+                        </span>
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            width="20"
+                            height="20"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="m9 6 6 6-6 6"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                    </button>
+
+                </section>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             STATISTICS PANEL
+        ========================== -->
+        <div
+            class="side-panel"
+            id="statsPanel"
+            aria-hidden="true"
+        >
+
+            <div class="panel-header">
+
+                <h2>Статистика</h2>
+
+                <button
+                    class="icon-button close-button"
+                    id="closeStatsButton"
+                    type="button"
+                    aria-label="Закрыть статистику"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="22"
+                        height="22"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M6 6 18 18M18 6 6 18"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                        />
+                    </svg>
+                </button>
+
+            </div>
+
+
+            <div class="panel-content">
+
+                <section class="stats-overview">
+
+                    <div class="stat-card">
+
+                        <span class="stat-card-label">
+                            Побед
+                        </span>
+
+                        <strong
+                            class="stat-card-value"
+                            id="totalWins"
+                        >
+                            0
+                        </strong>
+
+                    </div>
+
+                </section>
+
+
+                <section class="stats-section">
+
+                    <h3>Лучшее время</h3>
+
+
+                    <div class="difficulty-stat">
+
+                        <div class="difficulty-stat-name">
+                            <span>Легкий</span>
+                        </div>
+
+                        <strong
+                            id="bestTimeEasy"
+                            class="difficulty-stat-value"
+                        >
+                            --
+                        </strong>
+
+                    </div>
+
+
+                    <div class="difficulty-stat">
+
+                        <div class="difficulty-stat-name">
+                            <span>Средний</span>
+                        </div>
+
+                        <strong
+                            id="bestTimeMedium"
+                            class="difficulty-stat-value"
+                        >
+                            --
+                        </strong>
+
+                    </div>
+
+
+                    <div class="difficulty-stat">
+
+                        <div class="difficulty-stat-name">
+                            <span>Сложный</span>
+                        </div>
+
+                        <strong
+                            id="bestTimeHard"
+                            class="difficulty-stat-value"
+                        >
+                            --
+                        </strong>
+
+                    </div>
+
+
+                    <div class="difficulty-stat">
+
+                        <div class="difficulty-stat-name">
+                            <span>Эксперт</span>
+                        </div>
+
+                        <strong
+                            id="bestTimeExpert"
+                            class="difficulty-stat-value"
+                        >
+                            --
+                        </strong>
+
+                    </div>
+
+
+                    <div class="difficulty-stat">
+
+                        <div class="difficulty-stat-name">
+                            <span>Экстремальный</span>
+                        </div>
+
+                        <strong
+                            id="bestTimeExtreme"
+                            class="difficulty-stat-value"
+                        >
+                            --
+                        </strong>
+
+                    </div>
+
+                </section>
+
+
+                <section class="stats-section">
+
+                    <button
+                        class="settings-action danger-action"
+                        id="resetStatsButton"
+                        type="button"
+                    >
+                        <span>
+                            <span class="setting-title">
+                                Сбросить статистику
+                            </span>
+
+                            <span class="setting-description">
+                                Удалить все сохраненные результаты
+                            </span>
+                        </span>
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            width="20"
+                            height="20"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M6 7h12M9 7V5h6v2M8 7l.7 12h6.6L16 7"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.7"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                    </button>
+
+                </section>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             OVERLAY FOR PANELS
+        ========================== -->
+        <div
+            class="panel-backdrop"
+            id="panelBackdrop"
+            aria-hidden="true"
+        ></div>
+
+
+        <!-- =========================
+             DIFFICULTY MODAL
+        ========================== -->
+        <div
+            class="modal"
+            id="difficultyModal"
+            aria-hidden="true"
+        >
+
+            <div class="modal-card">
+
+                <div class="modal-header">
+
+                    <h2>Новая игра</h2>
+
+                    <button
+                        class="icon-button"
+                        id="closeDifficultyButton"
+                        type="button"
+                        aria-label="Закрыть"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            width="22"
+                            height="22"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M6 6 18 18M18 6 6 18"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                            />
+                        </svg>
+                    </button>
+
+                </div>
+
+
+                <div
+                    class="difficulty-list"
+                    id="difficultyList"
+                >
+
+                    <button
+                        class="difficulty-option active"
+                        type="button"
+                        data-difficulty="easy"
+                    >
+                        <span class="difficulty-option-name">
+                            Легкий
+                        </span>
+
+                        <span class="difficulty-option-description">
+                            Подходит для быстрого решения
+                        </span>
+
+                        <span
+                            class="difficulty-option-check"
+                            aria-hidden="true"
+                        >
+                            ✓
+                        </span>
+                    </button>
+
+
+                    <button
+                        class="difficulty-option"
+                        type="button"
+                        data-difficulty="medium"
+                    >
+                        <span class="difficulty-option-name">
+                            Средний
+                        </span>
+
+                        <span class="difficulty-option-description">
+                            Требует концентрации
+                        </span>
+
+                        <span
+                            class="difficulty-option-check"
+                            aria-hidden="true"
+                        >
+                            ✓
+                        </span>
+                    </button>
+
+
+                    <button
+                        class="difficulty-option"
+                        type="button"
+                        data-difficulty="hard"
+                    >
+                        <span class="difficulty-option-name">
+                            Сложный
+                        </span>
+
+                        <span class="difficulty-option-description">
+                            Для опытных игроков
+                        </span>
+
+                        <span
+                            class="difficulty-option-check"
+                            aria-hidden="true"
+                        >
+                            ✓
+                        </span>
+                    </button>
+
+
+                    <button
+                        class="difficulty-option"
+                        type="button"
+                        data-difficulty="expert"
+                    >
+                        <span class="difficulty-option-name">
+                            Эксперт
+                        </span>
+
+                        <span class="difficulty-option-description">
+                            Высокая сложность
+                        </span>
+
+                        <span
+                            class="difficulty-option-check"
+                            aria-hidden="true"
+                        >
+                            ✓
+                        </span>
+                    </button>
+
+
+                    <button
+                        class="difficulty-option"
+                        type="button"
+                        data-difficulty="extreme"
+                    >
+                        <span class="difficulty-option-name">
+                            Экстремальный
+                        </span>
+
+                        <span class="difficulty-option-description">
+                            Максимальная сложность
+                        </span>
+
+                        <span
+                            class="difficulty-option-check"
+                            aria-hidden="true"
+                        >
+                            ✓
+                        </span>
+                    </button>
+
+                </div>
+
+
+                <button
+                    class="primary-button modal-confirm-button"
+                    id="confirmNewGameButton"
+                    type="button"
+                >
+                    Начать игру
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             CONFIRMATION MODAL
+        ========================== -->
+        <div
+            class="modal"
+            id="confirmModal"
+            aria-hidden="true"
+        >
+
+            <div class="modal-card small-modal">
+
+                <div class="modal-header">
+
+                    <h2 id="confirmModalTitle">
+                        Подтверждение
+                    </h2>
+
+                    <button
+                        class="icon-button"
+                        id="closeConfirmButton"
+                        type="button"
+                        aria-label="Закрыть"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            width="22"
+                            height="22"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M6 6 18 18M18 6 6 18"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                            />
+                        </svg>
+                    </button>
+
+                </div>
+
+                <p
+                    class="confirm-message"
+                    id="confirmModalMessage"
+                >
+                    Ты уверен?
+                </p>
+
+                <div class="confirm-actions">
+
+                    <button
+                        class="secondary-button"
+                        id="cancelConfirmButton"
+                        type="button"
+                    >
+                        Отмена
+                    </button>
+
+                    <button
+                        class="primary-button"
+                        id="acceptConfirmButton"
+                        type="button"
+                    >
+                        Продолжить
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             TOAST
+        ========================== -->
+        <div
+            class="toast"
+            id="toast"
+            role="status"
+            aria-live="polite"
+            aria-hidden="true"
+        >
+            <span id="toastMessage"></span>
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         JAVASCRIPT
+    ========================== -->
+    <script src="script.js" defer></script>
+
+</body>
+</html>
