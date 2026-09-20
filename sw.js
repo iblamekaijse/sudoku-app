@@ -1,20 +1,13 @@
 "use strict";
 
-/*
- * Версия кэша.
- * При изменении файлов приложения
- * увеличивай номер версии.
- */
+/* =========================================================
+   SUDOKU PWA
+   Service Worker v2
+   ========================================================= */
 
-const CACHE_NAME =
-    "sudoku-pwa-v1";
+const CACHE_NAME = "sudoku-pwa-v2";
 
-
-/*
- * Все ресурсы, необходимые приложению.
- */
-
-const APP_ASSETS = [
+const APP_FILES = [
     "./",
     "./index.html",
     "./style.css",
@@ -35,14 +28,14 @@ self.addEventListener(
         event.waitUntil(
             caches
                 .open(CACHE_NAME)
-                .then(cache =>
-                    cache.addAll(
-                        APP_ASSETS
-                    )
-                )
-                .then(() =>
-                    self.skipWaiting()
-                )
+                .then(cache => {
+                    return cache.addAll(
+                        APP_FILES
+                    );
+                })
+                .then(() => {
+                    return self.skipWaiting();
+                })
         );
     }
 );
@@ -58,8 +51,8 @@ self.addEventListener(
         event.waitUntil(
             caches
                 .keys()
-                .then(cacheNames =>
-                    Promise.all(
+                .then(cacheNames => {
+                    return Promise.all(
                         cacheNames
                             .filter(
                                 cacheName =>
@@ -72,11 +65,11 @@ self.addEventListener(
                                         cacheName
                                     )
                             )
-                    )
-                )
-                .then(() =>
-                    self.clients.claim()
-                )
+                    );
+                })
+                .then(() => {
+                    return self.clients.claim();
+                })
         );
     }
 );
@@ -93,8 +86,7 @@ self.addEventListener(
             event.request;
 
         /*
-         * Только GET-запросы могут
-         * обслуживаться этим cache strategy.
+         * Нас интересуют только GET-запросы.
          */
 
         if (
@@ -107,17 +99,28 @@ self.addEventListener(
             caches
                 .match(request)
                 .then(cachedResponse => {
-                    if (cachedResponse) {
+                    /*
+                     * Если файл уже есть в кэше,
+                     * используем его.
+                     */
+
+                    if (
+                        cachedResponse
+                    ) {
                         return cachedResponse;
                     }
+
+                    /*
+                     * Если файла нет в кэше,
+                     * пробуем интернет.
+                     */
 
                     return fetch(request)
                         .then(
                             networkResponse => {
                                 /*
-                                 * Кладем успешный ответ
-                                 * в кэш для следующего
-                                 * офлайн-запуска.
+                                 * Кэшируем только нормальный
+                                 * ответ сервера.
                                  */
 
                                 if (
@@ -135,11 +138,12 @@ self.addEventListener(
                                             CACHE_NAME
                                         )
                                         .then(
-                                            cache =>
+                                            cache => {
                                                 cache.put(
                                                     request,
                                                     copy
-                                                )
+                                                );
+                                            }
                                         );
                                 }
 
@@ -147,12 +151,51 @@ self.addEventListener(
                             }
                         )
                         .catch(
-                            () =>
-                                caches.match(
-                                    "./index.html"
-                                )
+                            async () => {
+                                /*
+                                 * Если интернета нет
+                                 * и браузер запросил страницу,
+                                 * возвращаем index.html.
+                                 */
+
+                                if (
+                                    request.mode ===
+                                        "navigate"
+                                ) {
+                                    return caches.match(
+                                        "./index.html"
+                                    );
+                                }
+
+                                return new Response(
+                                    "",
+                                    {
+                                        status: 503,
+                                        statusText:
+                                            "Offline"
+                                    }
+                                );
+                            }
                         );
                 })
         );
+    }
+);
+
+
+/* =========================================================
+   MESSAGE
+   ========================================================= */
+
+self.addEventListener(
+    "message",
+    event => {
+        if (
+            event.data &&
+            event.data.type ===
+                "SKIP_WAITING"
+        ) {
+            self.skipWaiting();
+        }
     }
 );

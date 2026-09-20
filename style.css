@@ -2211,3 +2211,281 @@ p {
         max-width: 100%;
     }
 }
+/* =========================================================
+   DYNAMIC SETTINGS: LANGUAGE + PALETTE
+   ========================================================= */
+
+.dynamic-setting-description {
+    margin-top: -4px;
+    margin-bottom: 11px;
+
+    color: var(--text-secondary);
+
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+
+.language-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 5px;
+
+    max-height: 300px;
+
+    overflow-y: auto;
+}
+
+
+.language-option {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    width: 100%;
+
+    min-height: 43px;
+
+    padding: 0 13px;
+
+    border: 1px solid transparent;
+    border-radius: 11px;
+
+    background: var(--surface-secondary);
+
+    color: var(--text);
+
+    font-size: 12px;
+    font-weight: 620;
+
+    text-align: left;
+
+    transition:
+        background-color 140ms ease,
+        border-color 140ms ease;
+}
+
+
+.language-option:hover {
+    background: var(--surface-tertiary);
+}
+
+
+.language-option.active {
+    border-color:
+        var(--accent-color, var(--border-strong));
+
+    background:
+        var(--accent-soft, var(--surface));
+}
+
+
+.language-check {
+    color:
+        var(--accent-color, var(--text));
+
+    font-size: 16px;
+    font-weight: 800;
+
+    opacity: 0;
+}
+
+
+.language-option.active
+.language-check {
+    opacity: 1;
+}
+
+
+/* =========================================================
+   PALETTE GRID
+   ========================================================= */
+
+.palette-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 7px;
+}
+
+
+.palette-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 6px;
+
+    min-height: 66px;
+
+    padding: 8px 4px;
+
+    border:
+        1px solid
+        transparent;
+
+    border-radius: 12px;
+
+    background: var(--surface-secondary);
+
+    color: var(--text);
+
+    transition:
+        background-color 140ms ease,
+        border-color 140ms ease,
+        transform 100ms ease;
+}
+
+
+.palette-option:hover {
+    background:
+        var(--surface-tertiary);
+}
+
+
+.palette-option:active {
+    transform: scale(0.96);
+}
+
+
+.palette-option.active {
+    border-color:
+        var(--accent-color, var(--border-strong));
+
+    background:
+        var(--accent-soft, var(--surface));
+}
+
+
+.palette-swatch {
+    width: 24px;
+    height: 24px;
+
+    border-radius: 50%;
+
+    box-shadow:
+        inset 0 0 0 2px
+        rgba(255, 255, 255, 0.28),
+        0 2px 5px
+        rgba(0, 0, 0, 0.12);
+}
+
+
+.palette-label {
+    max-width: 100%;
+
+    color: var(--text-secondary);
+
+    font-size: 9px;
+    line-height: 1.1;
+
+    font-weight: 650;
+
+    text-align: center;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+
+.palette-option.active
+.palette-label {
+    color: var(--text);
+}
+
+
+/* =========================================================
+   PALETTE APPLICATION
+   ========================================================= */
+
+:root {
+    --accent-color: #55575d;
+    --accent-soft: rgba(85, 87, 93, 0.12);
+    --accent-medium: rgba(85, 87, 93, 0.20);
+    --accent-strong: rgba(85, 87, 93, 0.30);
+}
+
+
+/*
+ * Выбранное число.
+ */
+
+.number-button.active-number {
+    background:
+        var(--accent-color);
+
+    color:
+        #ffffff;
+}
+
+
+/*
+ * Выбранная клетка.
+ */
+
+.cell.selected {
+    background:
+        var(--accent-soft);
+}
+
+
+/*
+ * Одинаковые цифры.
+ */
+
+.cell.same-number {
+    background:
+        var(--accent-medium);
+}
+
+
+/*
+ * Выбранная клетка с одновременно
+ * совпадающей цифрой.
+ */
+
+.cell.selected.same-number {
+    background:
+        var(--accent-strong);
+}
+
+
+/*
+ * Smart Hint.
+ */
+
+.smart-hint-dot,
+.cell.hint-cell::after {
+    background:
+        var(--accent-color);
+}
+
+
+/*
+ * Акцент победы внутри интерфейса.
+ */
+
+.success-icon {
+    color:
+        var(--accent-color);
+
+    background:
+        var(--accent-soft);
+}
+
+
+/*
+ * Переключатель включенного состояния.
+ */
+
+.switch-input:checked + .switch {
+    background:
+        var(--accent-color);
+}
