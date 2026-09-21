@@ -503,7 +503,96 @@ let toastHandle = null;
 let confirmCallback = null;
 let pendingDifficulty = "easy";
 let audioContext = null;
+function createEmptyNotes() {
+    return Array.from(
+        { length: 81 },
+        () => []
+    );
+}
 
+
+function updateNotesButton() {
+    if (
+        !elements.notesButton
+    ) {
+        return;
+    }
+
+    elements.notesButton.setAttribute(
+        "aria-pressed",
+        String(
+            state.notesMode
+        )
+    );
+}
+
+
+function updateDifficultyLabel() {
+    if (
+        !elements.difficultyLabel
+    ) {
+        return;
+    }
+
+    const difficulty =
+        DIFFICULTIES[
+            state.difficulty
+        ];
+
+    if (
+        !difficulty
+    ) {
+        return;
+    }
+
+    elements.difficultyLabel.textContent =
+        t(
+            difficulty.label
+        );
+}
+
+
+function updateSettingsUI() {
+    if (
+        elements.soundToggle
+    ) {
+        elements.soundToggle.checked =
+            state.settings.sound;
+    }
+
+    if (
+        elements.vibrationToggle
+    ) {
+        elements.vibrationToggle.checked =
+            state.settings.vibration;
+    }
+
+    const themeButtons =
+        document.querySelectorAll(
+            ".theme-option"
+        );
+
+    themeButtons.forEach(
+        button => {
+            const active =
+                button.dataset.theme ===
+                state.settings.theme;
+
+            button.classList.toggle(
+                "active",
+                active
+            );
+
+            button.setAttribute(
+                "aria-pressed",
+                String(active)
+            );
+        }
+    );
+
+    renderLanguageOptions();
+    renderPaletteOptions();
+}
 let state = {
     difficulty:"easy",
     puzzle:[],
