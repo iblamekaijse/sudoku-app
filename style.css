@@ -3854,3 +3854,43 @@ html[data-theme="dark"] #settingsPanel .customization-palette-section .palette-o
         min-height: 62px;
     }
 }
+/* =========================================================
+   FINAL SETTINGS SEPARATOR FIX
+   Полностью убираем линии между секциями
+   ========================================================= */
+
+#settingsPanel .settings-section,
+#settingsPanel #themeSettingsSection,
+#settingsPanel #feedbackSettingsSection,
+#settingsPanel #gameSettingsSection,
+#settingsPanel .customization-language-section,
+#settingsPanel .customization-palette-section {
+    border-top: none !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+    background-image: none !important;
+}
+
+
+/* Убираем возможные псевдоэлементы-разделители */
+
+#settingsPanel .settings-section::before,
+#settingsPanel .settings-section::after,
+#settingsPanel .customization-language-section::before,
+#settingsPanel .customization-language-section::after,
+#settingsPanel .customization-palette-section::before,
+#settingsPanel .customization-palette-section::after {
+    content: none !important;
+    display: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+
+/* Не даем старым правилам снова рисовать линии */
+
+#settingsPanel .settings-section + .settings-section {
+    border-top: none !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+}
