@@ -4170,9 +4170,27 @@ function existsInUnit(
    NUMBER PAD
    ========================================================= */
 
-function updateNumberPad(
-    selectedValue
-) {
+function updateNumberPad() {
+    /*
+     * Определяем выбранное значение
+     * непосредственно внутри функции.
+     *
+     * Благодаря этому selectedValue
+     * больше не зависит от параметров
+     * функции и не может быть undefined.
+     */
+
+    let selectedValue = 0;
+
+    if (
+        state.selectedIndex !== null
+    ) {
+        selectedValue =
+            state.board[
+                state.selectedIndex
+            ] || 0;
+    }
+
     const buttons =
         elements.numberPad
             .querySelectorAll(
@@ -4199,7 +4217,8 @@ function updateNumberPad(
 
             button.classList.toggle(
                 "active-number",
-                selectedValue === number
+                selectedValue ===
+                    number
             );
 
             button.classList.toggle(
@@ -4212,7 +4231,9 @@ function updateNumberPad(
                     ".number-remaining"
                 );
 
-            if (!counter) {
+            if (
+                !counter
+            ) {
                 counter =
                     document.createElement(
                         "span"
