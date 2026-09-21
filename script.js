@@ -4170,73 +4170,67 @@ function existsInUnit(
    NUMBER PAD
    ========================================================= */
 
-function updateNumberPad(
-    selectedValue
-) {
+function updateNumberPad(selectedValue = 0) {
     const buttons =
-        elements.numberPad
-            .querySelectorAll(
-                ".number-button"
+        elements.numberPad.querySelectorAll(
+            ".number-button"
+        );
+
+    buttons.forEach(button => {
+        const number =
+            Number(button.dataset.number);
+
+        const count =
+            countNumberOnBoard(number);
+
+        const remaining =
+            Math.max(
+                0,
+                9 - count
             );
 
-    buttons.forEach(
-        button => {
-            const number =
-                Number(
-                    button.dataset.number
-                );
+        button.classList.toggle(
+            "active-number",
+            selectedValue === number
+        );
 
-            const count =
-                countBoardNumber(
-                    number
-                );
+        button.classList.toggle(
+            "disabled-number",
+            remaining === 0
+        );
 
-            const remaining =
-                Math.max(
-                    0,
-                    9 - count
-                );
-
-            button.classList.toggle(
-                "active-number",
-                selectedValue === number
+        let counter =
+            button.querySelector(
+                ".number-remaining"
             );
 
-            button.classList.toggle(
-                "disabled-number",
-                remaining === 0
-            );
-
-            let counter =
-                button.querySelector(
-                    ".number-remaining"
+        if (!counter) {
+            counter =
+                document.createElement(
+                    "span"
                 );
 
-            if (!counter) {
-                counter =
-                    document.createElement(
-                        "span"
-                    );
-
-                counter.className =
-                    "number-remaining";
-
-                button.appendChild(
-                    counter
-                );
-            }
-
-            counter.textContent =
-                String(
-                    remaining
-                );
+            counter.className =
+                "number-remaining";
 
             counter.setAttribute(
                 "aria-hidden",
                 "true"
             );
+
+            button.appendChild(
+                counter
+            );
         }
-    );
+
+        counter.textContent =
+            String(remaining);
+
+        button.setAttribute(
+            "aria-label",
+            `${number}, осталось ${remaining}`
+        );
+    });
 }
     const buttons =
         elements.numberPad
@@ -5893,25 +5887,24 @@ function checkForWin() {
 
 
 function finishWin() {
-    if (
-        state.isWon
-    ) {
+    if (state.isWon) {
         return;
     }
 
-    state.isWon = true;
-
-    state.isPaused = false;
-
     /*
-     * Фиксируем окончательное время
-     * и полностью останавливаем таймер.
+     * СНАЧАЛА фиксируем время,
+     * пока игра еще считается активной.
      */
-
     state.elapsedMs =
         getElapsedMs();
 
     state.startedAt = null;
+    state.isPaused = false;
+
+    /*
+     * Только теперь завершаем игру.
+     */
+    state.isWon = true;
 
     updateTimer();
 
@@ -5922,80 +5915,61 @@ function finishWin() {
             state.elapsedMs
         );
 
-    /*
-     * Завершенную игру нет смысла
-     * хранить как "продолжение".
-     */
-
     deleteCurrentGame();
 
-    elements.app.classList.remove(
-        "game-paused"
-    );
-
-    elements.boardWrapper.classList.remove(
-        "paused"
+    hideOverlay(
+        elements.pauseOverlay
     );
 
     renderBoard();
+
+    showOverlay(
+        elements.winOverlay
+    );
 
     playWinSound();
 
     vibrate([
         100,
-        55,
-        120,
-        55,
+        50,
+        130,
+        50,
         220,
         80,
-        120
+        100
     ]);
-
-    showOverlay(
-        elements.winOverlay
-    );
 }
 
 
 function finishGameOver() {
-    if (
-        state.isGameOver
-    ) {
+    if (state.isGameOver) {
         return;
     }
 
-    state.isGameOver = true;
-
-    state.isPaused = false;
-
     /*
-     * Время фиксируем.
+     * Сначала фиксируем последнее активное время.
      */
-
     state.elapsedMs =
         getElapsedMs();
 
     state.startedAt = null;
+    state.isPaused = false;
+
+    /*
+     * Потом объявляем игру законченной.
+     */
+    state.isGameOver = true;
 
     updateTimer();
 
     /*
-     * Game Over означает завершение
-     * партии.
-     *
-     * В отличие от старой версии,
-     * мы НЕ оставляем эту проигранную
-     * партию как активное сохранение.
+     * Проигранную партию не сохраняем
+     * как активную.
      */
-
     deleteCurrentGame();
 
-    elements.app.classList.remove(
-        "game-paused"
-    );
-
-    elements.boardWrapper.classList.remove(
-        "paused"
+    hideOverlay(
+        elements.pauseOverlay
     );
 
     renderBoard();

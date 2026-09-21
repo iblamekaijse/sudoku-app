@@ -2525,3 +2525,169 @@ p {
     background:
         var(--accent-color);
 }
+/* =========================================================
+   NUMBER PAD COUNTERS
+   ========================================================= */
+
+.number-button {
+    position: relative;
+
+    flex-direction: column;
+
+    gap: 2px;
+}
+
+.number-remaining {
+    display: block;
+
+    min-height: 9px;
+
+    color:
+        var(--text-tertiary);
+
+    font-size: 8px;
+
+    line-height: 1;
+
+    font-weight: 650;
+
+    font-variant-numeric:
+        tabular-nums;
+
+    transition:
+        color 120ms ease,
+        opacity 120ms ease;
+}
+
+.number-button.active-number
+.number-remaining {
+    color:
+        rgba(
+            255,
+            255,
+            255,
+            0.72
+        );
+}
+
+.number-button.disabled-number
+.number-remaining {
+    opacity: 0.45;
+}
+
+@media (max-width: 420px) {
+    .number-remaining {
+        font-size: 7px;
+    }
+}
+
+/* =========================================================
+   NUMBER PAD COUNTERS
+   ========================================================= */
+
+.number-button {
+    position: relative;
+
+    flex-direction: column;
+
+    gap: 2px;
+
+    line-height: 1;
+}
+
+.number-remaining {
+    display: block;
+
+    min-height: 8px;
+
+    color: var(--text-tertiary);
+
+    font-size: 8px;
+
+    line-height: 1;
+
+    font-weight: 650;
+
+    font-variant-numeric: tabular-nums;
+
+    transition:
+        color 120ms ease,
+        opacity 120ms ease;
+}
+
+.number-button.active-number
+.number-remaining {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.number-button.disabled-number
+.number-remaining {
+    opacity: 0.45;
+}
+
+@media (max-width: 420px) {
+    .number-remaining {
+        font-size: 7px;
+    }
+}
+/* =========================================================
+   BETTER CELL SELECTION
+   ========================================================= */
+
+.cell.selected {
+    background:
+        color-mix(
+            in srgb,
+            var(--palette) 16%,
+            var(--surface)
+        );
+
+    box-shadow:
+        inset 0 0 0 1.5px var(--palette);
+}
+
+.cell.related {
+    background:
+        color-mix(
+            in srgb,
+            var(--palette) 6%,
+            transparent
+        );
+}
+
+.cell.same-number {
+    background:
+        color-mix(
+            in srgb,
+            var(--palette) 14%,
+            transparent
+        );
+}
+
+.cell.selected.same-number {
+    background:
+        color-mix(
+            in srgb,
+            var(--palette) 20%,
+            var(--surface)
+        );
+
+    box-shadow:
+        inset 0 0 0 1.5px var(--palette);
+}
+/* =========================================================
+   NUMBER TYPOGRAPHY
+   ========================================================= */
+
+.cell.given,
+.cell.user-filled {
+    font-weight: 650;
+}
+
+.cell.given {
+    color: var(--text);
+}
+
+.cell.user-filled {
+    color: var(--palette);
+}
