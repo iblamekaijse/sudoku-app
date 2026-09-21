@@ -1151,7 +1151,250 @@ function getHintCells(){
 
     return hints;
 }
+function uniqueNote(index,number){
+    if(state.board[index]!==0)return false;
 
+    const row=Math.floor(index/9);
+    const col=index%9;
+
+    let count=0;
+
+    for(let currentCol=0;currentCol<9;currentCol++){
+        const current=row*9+currentCol;
+
+        if(
+            state.board[current]===0 &&
+            !hasNumberInUnit(current,number)
+        ){
+            count++;
+        }
+    }
+
+    if(count===1)return true;
+
+    count=0;
+
+    for(let currentRow=0;currentRow<9;currentRow++){
+        const current=currentRow*9+col;
+
+        if(
+            state.board[current]===0 &&
+            !hasNumberInUnit(current,number)
+        ){
+            count++;
+        }
+    }
+
+    if(count===1)return true;
+
+    count=0;
+
+    const startRow=Math.floor(row/3)*3;
+    const startCol=Math.floor(col/3)*3;
+
+    for(let rowOffset=0;rowOffset<3;rowOffset++){
+        for(let colOffset=0;colOffset<3;colOffset++){
+            const current=
+                (startRow+rowOffset)*9+
+                startCol+
+                colOffset;
+
+            if(
+                state.board[current]===0 &&
+                !hasNumberInUnit(current,number)
+            ){
+                count++;
+            }
+        }
+    }
+
+    return count===1;
+}
+function isUniqueNote(index,number){
+    if(state.board[index]!==0)return false;
+
+    const row=Math.floor(index/9);
+    const col=index%9;
+
+    let count=0;
+
+    // Проверка строки
+    for(let currentCol=0;currentCol<9;currentCol++){
+        const current=row*9+currentCol;
+
+        if(state.board[current]!==0)continue;
+
+        let possible=true;
+
+        for(let checkCol=0;checkCol<9;checkCol++){
+            const check= row*9+checkCol;
+
+            if(check!==current && state.board[check]===number){
+                possible=false;
+                break;
+            }
+        }
+
+        if(possible){
+            for(let checkRow=0;checkRow<9;checkRow++){
+                const check=checkRow*9+currentCol;
+
+                if(check!==current && state.board[check]===number){
+                    possible=false;
+                    break;
+                }
+            }
+        }
+
+        if(possible){
+            const startRow=Math.floor(row/3)*3;
+            const startCol=Math.floor(currentCol/3)*3;
+
+            for(let rowOffset=0;rowOffset<3 && possible;rowOffset++){
+                for(let colOffset=0;colOffset<3;colOffset++){
+                    const check=
+                        (startRow+rowOffset)*9+
+                        startCol+
+                        colOffset;
+
+                    if(check!==current && state.board[check]===number){
+                        possible=false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if(possible){
+            count++;
+        }
+
+        if(count>1)return false;
+    }
+
+    if(count===1)return true;
+
+    // Проверка столбца
+    count=0;
+
+    for(let currentRow=0;currentRow<9;currentRow++){
+        const current=currentRow*9+col;
+
+        if(state.board[current]!==0)continue;
+
+        let possible=true;
+
+        for(let checkRow=0;checkRow<9;checkRow++){
+            const check=checkRow*9+col;
+
+            if(check!==current && state.board[check]===number){
+                possible=false;
+                break;
+            }
+        }
+
+        if(possible){
+            for(let checkCol=0;checkCol<9;checkCol++){
+                const check=currentRow*9+checkCol;
+
+                if(check!==current && state.board[check]===number){
+                    possible=false;
+                    break;
+                }
+            }
+        }
+
+        if(possible){
+            const startRow=Math.floor(currentRow/3)*3;
+            const startCol=Math.floor(col/3)*3;
+
+            for(let rowOffset=0;rowOffset<3 && possible;rowOffset++){
+                for(let colOffset=0;colOffset<3;colOffset++){
+                    const check=
+                        (startRow+rowOffset)*9+
+                        startCol+
+                        colOffset;
+
+                    if(check!==current && state.board[check]===number){
+                        possible=false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if(possible){
+            count++;
+        }
+
+        if(count>1)return false;
+    }
+
+    if(count===1)return true;
+
+    // Проверка блока 3×3
+    count=0;
+
+    const startRow=Math.floor(row/3)*3;
+    const startCol=Math.floor(col/3)*3;
+
+    for(let rowOffset=0;rowOffset<3;rowOffset++){
+        for(let colOffset=0;colOffset<3;colOffset++){
+            const current=
+                (startRow+rowOffset)*9+
+                startCol+
+                colOffset;
+
+            if(state.board[current]!==0)continue;
+
+            let possible=true;
+
+            for(let checkCol=0;checkCol<9;checkCol++){
+                const check=(startRow+rowOffset)*9+checkCol;
+
+                if(check!==current && state.board[check]===number){
+                    possible=false;
+                    break;
+                }
+            }
+
+            if(possible){
+                for(let checkRow=0;checkRow<9;checkRow++){
+                    const check=checkRow*9+(startCol+colOffset);
+
+                    if(check!==current && state.board[check]===number){
+                        possible=false;
+                        break;
+                    }
+                }
+            }
+
+            if(possible){
+                for(let boxRow=0;boxRow<3 && possible;boxRow++){
+                    for(let boxCol=0;boxCol<3;boxCol++){
+                        const check=
+                            (startRow+boxRow)*9+
+                            startCol+
+                            boxCol;
+
+                        if(check!==current && state.board[check]===number){
+                            possible=false;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if(possible){
+                count++;
+            }
+
+            if(count>1)return false;
+        }
+    }
+
+    return count===1;
+}
 function renderBoard(){
     const selected=state.selectedIndex;
     const selectedNumber =
@@ -1222,14 +1465,16 @@ function renderBoard(){
                     note.className="note";
 
                     if(
-                        state.notes[index].includes(number)
-                    ){
-                        note.textContent=String(number);
+    state.notes[index].includes(number)
+){
+    note.textContent=String(number);
 
-                        if(notes.has(number)){
-                            note.classList.add("stale");
-                        }
-                    }
+    if(notes.has(number)){
+        note.classList.add("stale");
+    }else if(isUniqueNote(index,number)){
+        note.classList.add("unique");
+    }
+}
 
                     notesGrid.appendChild(note);
                 }

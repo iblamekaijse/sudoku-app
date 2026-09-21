@@ -3894,3 +3894,8 @@ html[data-theme="dark"] #settingsPanel .customization-palette-section .palette-o
     border-bottom: none !important;
     box-shadow: none !important;
 }
+.note.unique{
+    color:var(--accent) !important;
+    font-weight:800 !important;
+    transform:scale(1.2);
+}
