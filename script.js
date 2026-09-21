@@ -414,15 +414,15 @@ function applyPalette(){
     );
     root.style.setProperty(
         "--selected",
-        rgba(palette.color,0.13)
+        rgba(palette.color,0.20)
     );
     root.style.setProperty(
         "--related",
-        rgba(palette.color,0.085)
+        rgba(palette.color,0.12)
     );
     root.style.setProperty(
         "--same-number",
-        rgba(palette.color,0.16)
+        rgba(palette.color,0.22)
     );
 
     updateCustomizationUI();

@@ -3180,3 +3180,36 @@ p {
         min-width: 116px;
     }
 }
+/* =========================================================
+   PAUSE OVERLAY SPACING
+   ========================================================= */
+
+#pauseOverlay .overlay-card > p {
+    margin-top: 8px !important;
+    margin-bottom: 32px !important;
+}
+/* Более заметная подсветка связанных клеток на светлой теме */
+
+[data-theme="light"] #sudokuBoard .cell.related {
+    background-color: var(
+        --related,
+        rgba(85, 87, 93, 0.12)
+    ) !important;
+}
+
+[data-theme="light"] #sudokuBoard .cell.same-number:not(.selected) {
+    background-color: var(
+        --same-number,
+        rgba(85, 87, 93, 0.22)
+    ) !important;
+}
+
+[data-theme="light"] #sudokuBoard .cell.selected {
+    background-color: var(
+        --selected,
+        rgba(85, 87, 93, 0.20)
+    ) !important;
+
+    box-shadow:
+        inset 0 0 0 2px var(--accent, #55575d) !important;
+}
