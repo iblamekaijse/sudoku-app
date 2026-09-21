@@ -1626,7 +1626,7 @@ function finishGameOver(){
     hideOverlay(el.pauseOverlay);
 
     renderBoard();
-    showOverlay(el.gameOverOverlay);
+    openDifficultyModal(state.difficulty);
 }
 
 function finishWin(){
