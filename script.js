@@ -4186,6 +4186,77 @@ function updateNumberPad(
                     button.dataset.number
                 );
 
+            const count =
+                countBoardNumber(
+                    number
+                );
+
+            const remaining =
+                Math.max(
+                    0,
+                    9 - count
+                );
+
+            button.classList.toggle(
+                "active-number",
+                selectedValue ===
+                    number
+            );
+
+            button.classList.toggle(
+                "disabled-number",
+                remaining === 0
+            );
+
+            /*
+             * Создаем маленький счетчик
+             * только один раз.
+             */
+
+            let counter =
+                button.querySelector(
+                    ".number-remaining"
+                );
+
+            if (!counter) {
+                counter =
+                    document.createElement(
+                        "span"
+                    );
+
+                counter.className =
+                    "number-remaining";
+
+                button.appendChild(
+                    counter
+                );
+            }
+
+            counter.textContent =
+                String(
+                    remaining
+                );
+
+            counter.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+        }
+    );
+}
+    const buttons =
+        elements.numberPad
+            .querySelectorAll(
+                ".number-button"
+            );
+
+    buttons.forEach(
+        button => {
+            const number =
+                Number(
+                    button.dataset.number
+                );
+
             button.classList.toggle(
                 "active-number",
                 selectedValue ===
@@ -4203,7 +4274,7 @@ function updateNumberPad(
             );
         }
     );
-}
+
 
 
 function countBoardNumber(
@@ -5014,7 +5085,16 @@ function updateLanguageUI() {
             language.title ||
             "Sudoku";
     }
+    const appTitle =
+        document.querySelector(
+            ".topbar-title h1"
+        );
 
+    if (appTitle) {
+        appTitle.textContent =
+            language.title ||
+            "Sudoku";
+    }
     /*
      * Сложность в шапке.
      */

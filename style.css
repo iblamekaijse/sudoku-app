@@ -656,12 +656,17 @@ p {
    16. CELL STATES
    ========================================================= */
 
+.cell.given,
+.cell.user-filled {
+    font-weight: 650;
+}
+
 .cell.given {
-    font-weight: 720;
+    color: var(--text);
 }
 
 .cell.user-filled {
-    font-weight: 520;
+    color: var(--accent-color);
 }
 
 .cell.selected {
@@ -2432,7 +2437,38 @@ p {
 
 .cell.selected {
     background:
-        var(--accent-soft);
+        var(--accent-medium);
+
+    box-shadow:
+        inset 0 0 0 1.5px
+        var(--accent-color);
+}
+
+.cell.related {
+    background:
+        color-mix(
+            in srgb,
+            var(--accent-soft) 55%,
+            transparent
+        );
+}
+
+.cell.same-number {
+    background:
+        color-mix(
+            in srgb,
+            var(--accent-medium) 72%,
+            transparent
+        );
+}
+
+.cell.selected.same-number {
+    background:
+        var(--accent-strong);
+
+    box-shadow:
+        inset 0 0 0 1.5px
+        var(--accent-color);
 }
 
 
