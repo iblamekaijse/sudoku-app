@@ -5555,20 +5555,21 @@ function updateLanguageUI() {
                 "h2"
             );
 
-    const pauseText =
-        elements.pauseOverlay
-            .querySelector(
-                "p"
-            );
+    const pauseDescription =
+    elements.pauseOverlay
+        .querySelector(
+            "p"
+        );
 
-    if (pauseTitle) {
-        pauseTitle.textContent =
-            t("pause");
-    }
+if (pauseTitle) {
+    pauseTitle.textContent =
+        t("pause");
+}
 
-    if (pauseText) {
-        pauseText.textContent =
-            t("gameStopped");
+if (pauseDescription) {
+    pauseDescription.textContent =
+        t("gameStopped");
+}
     }
 
     /*
@@ -5580,7 +5581,7 @@ function updateLanguageUI() {
     updateSmartHint(
         getHintCells()
     );
-}
+
 
 
 /* =========================================================
