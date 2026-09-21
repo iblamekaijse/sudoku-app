@@ -4259,38 +4259,6 @@ function updateNumberPad() {
         }
     );
 }
-    const buttons =
-        elements.numberPad
-            .querySelectorAll(
-                ".number-button"
-            );
-
-    buttons.forEach(
-        button => {
-            const number =
-                Number(
-                    button.dataset.number
-                );
-
-            button.classList.toggle(
-                "active-number",
-                selectedValue ===
-                    number
-            );
-
-            const count =
-                countBoardNumber(
-                    number
-                );
-
-            button.classList.toggle(
-                "disabled-number",
-                count >= 9
-            );
-        }
-    );
-
-
 
 function countBoardNumber(
     number
