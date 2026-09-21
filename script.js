@@ -1384,19 +1384,20 @@ function inputNumber(number){
         return;
     }
 
-    state.board[index]=number;
-    state.notes[index]=[];
+    state.board[index]=number; 
+state.notes[index]=[];
+removeNoteFromPeers(index,number);
 
-    playPlaceSound();
-    vibrate([12]);
-    flash(index,"correct-flash");
+playPlaceSound();
+vibrate([12]);
+flash(index,"correct-flash");
 
-    saveCurrentGame();
-    renderBoard();
+saveCurrentGame();
+renderBoard();
 
-    if(state.board.every(Boolean)){
-        finishWin();
-    }
+if(state.board.every(Boolean)){
+    finishWin();
+}
 }
 
 function mistake(index){
@@ -1415,6 +1416,47 @@ function mistake(index){
         finishGameOver();
     }else{
         saveCurrentGame();
+    }
+}
+function removeNoteFromPeers(index,number){
+    const row=Math.floor(index/9);
+    const col=index%9;
+
+    for(let currentCol=0;currentCol<9;currentCol++){
+        const current=row*9+currentCol;
+
+        if(current!==index && state.board[current]===0){
+            state.notes[current]=state.notes[current].filter(
+                note=>note!==number
+            );
+        }
+    }
+
+    for(let currentRow=0;currentRow<9;currentRow++){
+        const current=currentRow*9+col;
+
+        if(current!==index && state.board[current]===0){
+            state.notes[current]=state.notes[current].filter(
+                note=>note!==number
+            );
+        }
+    }
+
+    const startRow=Math.floor(row/3)*3;
+    const startCol=Math.floor(col/3)*3;
+
+    for(let rowOffset=0;rowOffset<3;rowOffset++){
+        for(let colOffset=0;colOffset<3;colOffset++){
+            const currentRow=startRow+rowOffset;
+            const currentCol=startCol+colOffset;
+            const current=currentRow*9+currentCol;
+
+            if(current!==index && state.board[current]===0){
+                state.notes[current]=state.notes[current].filter(
+                    note=>note!==number
+                );
+            }
+        }
     }
 }
 
