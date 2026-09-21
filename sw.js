@@ -5,7 +5,7 @@
    Service Worker v2
    ========================================================= */
 
-const CACHE_NAME = "sudoku-pwa-v4";
+const CACHE_NAME = "sudoku-pwa-v5";
 
 const APP_FILES = [
     "./",

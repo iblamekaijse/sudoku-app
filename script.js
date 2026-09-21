@@ -418,7 +418,7 @@ function applyPalette(){
     );
     root.style.setProperty(
         "--related",
-        rgba(palette.color,0.055)
+        rgba(palette.color,0.085)
     );
     root.style.setProperty(
         "--same-number",
