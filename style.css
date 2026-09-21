@@ -2691,3 +2691,38 @@ p {
 .cell.user-filled {
     color: var(--palette);
 }
+.number-button {
+    position: relative;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1;
+}
+
+.number-remaining {
+    display: block;
+    min-height: 8px;
+
+    color: var(--text-tertiary);
+
+    font-size: 8px;
+    line-height: 1;
+    font-weight: 650;
+
+    font-variant-numeric: tabular-nums;
+}
+
+.number-button.active-number
+.number-remaining {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.number-button.disabled-number
+.number-remaining {
+    opacity: 0.45;
+}
+
+@media (max-width: 420px) {
+    .number-remaining {
+        font-size: 7px;
+    }
+}

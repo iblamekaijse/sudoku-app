@@ -4170,7 +4170,12 @@ function existsInUnit(
    NUMBER PAD
    ========================================================= */
 
-function updateNumberPad(selectedValue = 0) {
+function updateNumberPad() {
+    const currentValue =
+        state.selectedIndex !== null
+            ? state.board[state.selectedIndex]
+            : 0;
+
     const buttons =
         elements.numberPad.querySelectorAll(
             ".number-button"
@@ -4178,10 +4183,14 @@ function updateNumberPad(selectedValue = 0) {
 
     buttons.forEach(button => {
         const number =
-            Number(button.dataset.number);
+            Number(
+                button.dataset.number
+            );
 
         const count =
-            countNumberOnBoard(number);
+            countNumberOnBoard(
+                number
+            );
 
         const remaining =
             Math.max(
@@ -4191,7 +4200,7 @@ function updateNumberPad(selectedValue = 0) {
 
         button.classList.toggle(
             "active-number",
-            selectedValue === number
+            currentValue === number
         );
 
         button.classList.toggle(
@@ -4212,11 +4221,6 @@ function updateNumberPad(selectedValue = 0) {
 
             counter.className =
                 "number-remaining";
-
-            counter.setAttribute(
-                "aria-hidden",
-                "true"
-            );
 
             button.appendChild(
                 counter
@@ -5892,18 +5896,14 @@ function finishWin() {
     }
 
     /*
-     * СНАЧАЛА фиксируем время,
-     * пока игра еще считается активной.
+     * Сначала фиксируем время,
+     * пока игра еще активна.
      */
     state.elapsedMs =
         getElapsedMs();
 
     state.startedAt = null;
     state.isPaused = false;
-
-    /*
-     * Только теперь завершаем игру.
-     */
     state.isWon = true;
 
     updateTimer();
@@ -5917,8 +5917,12 @@ function finishWin() {
 
     deleteCurrentGame();
 
-    hideOverlay(
-        elements.pauseOverlay
+    elements.app.classList.remove(
+        "game-paused"
+    );
+
+    elements.boardWrapper.classList.remove(
+        "paused"
     );
 
     renderBoard();
