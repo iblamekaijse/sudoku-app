@@ -1,718 +1,1446 @@
 "use strict";
 
 /* =========================================================
-   SUDOKU APP - CLEAN SINGLE FILE
-   Compatible with the current index.html.
+   SUDOKU APP v2
    ========================================================= */
 
-const STORAGE = {
-    GAME: "sudoku_game_v3",
-    STATS: "sudoku_stats_v3",
-    SETTINGS: "sudoku_settings_v3"
+const STORAGE_KEYS = {
+    GAME: "sudoku_current_game_v2",
+    STATS: "sudoku_statistics_v2",
+    SETTINGS: "sudoku_settings_v2"
 };
 
-const VERSION = 3;
-const DIGITS = [1,2,3,4,5,6,7,8,9];
-const ALL_MASK = DIGITS.reduce((m,n)=>m|(1<<n),0);
+const SAVE_VERSION = 2;
+
+const GRID_SIZE = 9;
+const CELL_COUNT = 81;
 
 const DIFFICULTIES = {
-    easy:    { label:"easy",    desc:"easyDesc",    clues:46 },
-    medium:  { label:"medium",  desc:"mediumDesc",  clues:39 },
-    hard:    { label:"hard",    desc:"hardDesc",    clues:33 },
-    expert:  { label:"expert",  desc:"expertDesc",  clues:28 },
-    extreme: { label:"extreme", desc:"extremeDesc", clues:25 }
-};
+    easy: {
+        label: "Легкий",
+        clues: 46,
+        description: "Много исходных цифр"
+    },
 
-const PALETTES = {
-    mono:   { key:"paletteMono",   color:"#55575d" },
-    blue:   { key:"paletteBlue",   color:"#3976d8" },
-    purple: { key:"palettePurple", color:"#7554c7" },
-    yellow: { key:"paletteYellow", color:"#d4a51d" },
-    pink:   { key:"palettePink",   color:"#d65c91" },
-    green:  { key:"paletteGreen",  color:"#42915d" },
-    orange: { key:"paletteOrange", color:"#d67832" },
-    red:    { key:"paletteRed",    color:"#c85454" }
-};
+    medium: {
+        label: "Средний",
+        clues: 39,
+        description: "Требует концентрации"
+    },
 
-const LANGUAGES = [
-    ["ru","Русский"],
-    ["en","English"],
-    ["es","Español"],
-    ["de","Deutsch"],
-    ["fr","Français"],
-    ["pt","Português"],
-    ["it","Italiano"],
-    ["tr","Türkçe"],
-    ["pl","Polski"],
-    ["zh","中文"]
-];
+    hard: {
+        label: "Сложный",
+        clues: 33,
+        description: "Меньше исходных цифр"
+    },
 
-const DEFAULT_SETTINGS = {
-    theme:"system",
-    language:"ru",
-    palette:"mono",
-    sound:true,
-    vibration:true
-};
+    expert: {
+        label: "Эксперт",
+        clues: 28,
+        description: "Высокая сложность"
+    },
 
-const DEFAULT_STATS = {
-    totalWins:0,
-    bestTimes:{
-        easy:null,
-        medium:null,
-        hard:null,
-        expert:null,
-        extreme:null
+    extreme: {
+        label: "Экстремальный",
+        clues: 25,
+        description: "Минимум исходных цифр"
     }
-};
-
-const EN = {
-    title:"Sudoku",
-    time:"Time",
-    errors:"Mistakes",
-    stop:"Pause",
-    pencil:"Notes",
-    erase:"Erase",
-    newGame:"New game",
-    pause:"Paused",
-    gameStopped:"Game is paused",
-    continue:"Continue",
-    gameOver:"Game over",
-    threeMistakes:"3 mistakes made",
-    solved:"Sudoku solved",
-    yourTime:"Your time",
-    settings:"Settings",
-    stats:"Statistics",
-    theme:"Theme",
-    system:"System",
-    systemDesc:"Use phone setting",
-    light:"Light",
-    lightDesc:"Light interface",
-    dark:"Dark",
-    darkDesc:"Dark interface",
-    language:"Language",
-    languageDesc:"Interface language",
-    boardColor:"Interface color",
-    boardColorDesc:"Color palette",
-    feedback:"Feedback",
-    sound:"Sounds",
-    soundDesc:"Tap and error sounds",
-    vibration:"Vibration",
-    vibrationDesc:"Haptic feedback",
-    game:"Game",
-    resetSaved:"Reset saved game",
-    resetSavedDesc:"Restart the current difficulty",
-    wins:"Wins",
-    bestTime:"Best time",
-    resetStats:"Reset statistics",
-    resetStatsDesc:"Delete all saved results",
-    newGameTitle:"New game",
-    startGame:"Start game",
-    confirm:"Confirmation",
-    cancel:"Cancel",
-    close:"Close",
-    firstSelect:"Select a cell first",
-    cannotChange:"This cell cannot be changed",
-    cannotDelete:"Given number cannot be deleted",
-    invalidMove:"That number already exists in the row, column or box",
-    gameReset:"Game reset",
-    statsReset:"Statistics reset",
-    smartHint:"Some groups have one empty cell left",
-    easy:"Easy",
-    medium:"Medium",
-    hard:"Hard",
-    expert:"Expert",
-    extreme:"Extreme",
-    easyDesc:"Many given numbers",
-    mediumDesc:"Requires focus",
-    hardDesc:"Fewer given numbers",
-    expertDesc:"High difficulty",
-    extremeDesc:"Very few given numbers",
-    paletteMono:"Monochrome",
-    paletteBlue:"Blue",
-    palettePurple:"Purple",
-    paletteYellow:"Yellow",
-    palettePink:"Pink",
-    paletteGreen:"Green",
-    paletteOrange:"Orange",
-    paletteRed:"Red",
-    confirmNewGame:"The current game will be replaced.",
-    confirmResetGame:"The current game will be removed and this difficulty will restart.",
-    confirmResetStats:"All wins and best times will be deleted."
-};
-
-const RU = {
-    ...EN,
-    title:"Судоку",
-    time:"Время",
-    errors:"Ошибки",
-    stop:"Стоп",
-    pencil:"Карандаш",
-    erase:"Удалить",
-    newGame:"Новая игра",
-    pause:"Пауза",
-    gameStopped:"Игра остановлена",
-    continue:"Продолжить",
-    gameOver:"Игра окончена",
-    threeMistakes:"Допущено 3 ошибки",
-    solved:"Судоку решено",
-    yourTime:"Твое время",
-    settings:"Настройки",
-    stats:"Статистика",
-    theme:"Тема",
-    system:"Системная",
-    systemDesc:"Как на телефоне",
-    light:"Светлая",
-    lightDesc:"Светлый интерфейс",
-    dark:"Темная",
-    darkDesc:"Темный интерфейс",
-    language:"Язык",
-    languageDesc:"Язык интерфейса",
-    boardColor:"Цвет интерфейса",
-    boardColorDesc:"Цветовая палитра",
-    feedback:"Обратная связь",
-    sound:"Звуки",
-    soundDesc:"Звуки нажатий и ошибок",
-    vibration:"Вибрация",
-    vibrationDesc:"Тактильная обратная связь",
-    game:"Игра",
-    resetSaved:"Сбросить сохраненную игру",
-    resetSavedDesc:"Начать текущий уровень заново",
-    wins:"Побед",
-    bestTime:"Лучшее время",
-    resetStats:"Сбросить статистику",
-    resetStatsDesc:"Удалить все сохраненные результаты",
-    newGameTitle:"Новая игра",
-    startGame:"Начать игру",
-    confirm:"Подтверждение",
-    cancel:"Отмена",
-    close:"Закрыть",
-    firstSelect:"Сначала выбери клетку",
-    cannotChange:"Эту клетку нельзя изменить",
-    cannotDelete:"Исходную цифру удалить нельзя",
-    invalidMove:"Такая цифра уже есть в строке, столбце или блоке",
-    gameReset:"Игра сброшена",
-    statsReset:"Статистика сброшена",
-    smartHint:"В некоторых группах осталась одна клетка",
-    easy:"Легкий",
-    medium:"Средний",
-    hard:"Сложный",
-    expert:"Эксперт",
-    extreme:"Экстремальный",
-    easyDesc:"Много исходных цифр",
-    mediumDesc:"Требует концентрации",
-    hardDesc:"Меньше исходных цифр",
-    expertDesc:"Высокая сложность",
-    extremeDesc:"Минимум исходных цифр",
-    paletteMono:"Монохром",
-    paletteBlue:"Синий",
-    palettePurple:"Фиолетовый",
-    paletteYellow:"Желтый",
-    palettePink:"Розовый",
-    paletteGreen:"Зеленый",
-    paletteOrange:"Оранжевый",
-    paletteRed:"Красный",
-    confirmNewGame:"Текущая партия будет заменена новой.",
-    confirmResetGame:"Текущая партия будет удалена, а выбранный уровень начнется заново.",
-    confirmResetStats:"Все победы и лучшие времена будут удалены."
-};
-
-const ES = {
-    ...EN,
-    easy:"Fácil",
-    medium:"Medio",
-    hard:"Difícil",
-    expert:"Experto",
-    extreme:"Extremo",
-    language:"Idioma",
-    languageDesc:"Idioma de la interfaz",
-    boardColor:"Color de la interfaz",
-    feedback:"Respuesta",
-    settings:"Ajustes",
-    stats:"Estadísticas",
-    wins:"Victorias",
-    bestTime:"Mejor tiempo",
-    newGame:"Nueva partida",
-    startGame:"Empezar",
-    system:"Sistema",
-    light:"Claro",
-    dark:"Oscuro",
-    paletteMono:"Monocromo",
-    paletteBlue:"Azul",
-    palettePurple:"Morado",
-    paletteYellow:"Amarillo",
-    palettePink:"Rosa",
-    paletteGreen:"Verde",
-    paletteOrange:"Naranja",
-    paletteRed:"Rojo"
-};
-
-const DE = {
-    ...EN,
-    easy:"Leicht",
-    medium:"Mittel",
-    hard:"Schwer",
-    expert:"Experte",
-    extreme:"Extrem",
-    settings:"Einstellungen",
-    stats:"Statistik",
-    theme:"Design",
-    system:"System",
-    light:"Hell",
-    dark:"Dunkel",
-    language:"Sprache",
-    boardColor:"Oberflächenfarbe",
-    feedback:"Feedback",
-    wins:"Siege",
-    bestTime:"Bestzeit",
-    newGame:"Neues Spiel",
-    startGame:"Spiel starten",
-    cancel:"Abbrechen",
-    close:"Schließen",
-    paletteMono:"Monochrom",
-    paletteBlue:"Blau",
-    palettePurple:"Violett",
-    paletteYellow:"Gelb",
-    palettePink:"Rosa",
-    paletteGreen:"Grün",
-    paletteOrange:"Orange",
-    paletteRed:"Rot"
-};
-
-const FR = {
-    ...EN,
-    easy:"Facile",
-    medium:"Moyen",
-    hard:"Difficile",
-    expert:"Expert",
-    extreme:"Extrême",
-    settings:"Réglages",
-    stats:"Statistiques",
-    theme:"Thème",
-    system:"Système",
-    light:"Clair",
-    dark:"Sombre",
-    language:"Langue",
-    boardColor:"Couleur de l'interface",
-    feedback:"Retour",
-    wins:"Victoires",
-    bestTime:"Meilleur temps",
-    newGame:"Nouvelle partie",
-    startGame:"Commencer",
-    cancel:"Annuler",
-    close:"Fermer",
-    paletteMono:"Monochrome",
-    paletteBlue:"Bleu",
-    palettePurple:"Violet",
-    paletteYellow:"Jaune",
-    palettePink:"Rose",
-    paletteGreen:"Vert",
-    paletteOrange:"Orange",
-    paletteRed:"Rouge"
-};
-
-const PT = {
-    ...EN,
-    easy:"Fácil",
-    medium:"Médio",
-    hard:"Difícil",
-    expert:"Especialista",
-    extreme:"Extremo",
-    settings:"Configurações",
-    stats:"Estatísticas",
-    theme:"Tema",
-    system:"Sistema",
-    light:"Claro",
-    dark:"Escuro",
-    language:"Idioma",
-    boardColor:"Cor da interface",
-    feedback:"Feedback",
-    wins:"Vitórias",
-    bestTime:"Melhor tempo",
-    newGame:"Novo jogo",
-    startGame:"Começar",
-    cancel:"Cancelar",
-    close:"Fechar",
-    paletteMono:"Monocromático",
-    paletteBlue:"Azul",
-    palettePurple:"Roxo",
-    paletteYellow:"Amarelo",
-    palettePink:"Rosa",
-    paletteGreen:"Verde",
-    paletteOrange:"Laranja",
-    paletteRed:"Vermelho"
-};
-
-const IT = {
-    ...EN,
-    easy:"Facile",
-    medium:"Medio",
-    hard:"Difficile",
-    expert:"Esperto",
-    extreme:"Estremo",
-    settings:"Impostazioni",
-    stats:"Statistiche",
-    theme:"Tema",
-    system:"Sistema",
-    light:"Chiaro",
-    dark:"Scuro",
-    language:"Lingua",
-    boardColor:"Colore interfaccia",
-    feedback:"Feedback",
-    wins:"Vittorie",
-    bestTime:"Miglior tempo",
-    newGame:"Nuova partita",
-    startGame:"Inizia partita",
-    cancel:"Annulla",
-    close:"Chiudi",
-    paletteMono:"Monocromatico",
-    paletteBlue:"Blu",
-    palettePurple:"Viola",
-    paletteYellow:"Giallo",
-    palettePink:"Rosa",
-    paletteGreen:"Verde",
-    paletteOrange:"Arancione",
-    paletteRed:"Rosso"
-};
-
-const TR = {
-    ...EN,
-    easy:"Kolay",
-    medium:"Orta",
-    hard:"Zor",
-    expert:"Uzman",
-    extreme:"Ekstrem",
-    settings:"Ayarlar",
-    stats:"İstatistik",
-    theme:"Tema",
-    system:"Sistem",
-    light:"Açık",
-    dark:"Koyu",
-    language:"Dil",
-    boardColor:"Arayüz rengi",
-    feedback:"Geri bildirim",
-    wins:"Galibiyet",
-    bestTime:"En iyi süre",
-    newGame:"Yeni oyun",
-    startGame:"Oyunu başlat",
-    cancel:"İptal",
-    close:"Kapat",
-    paletteMono:"Monokrom",
-    paletteBlue:"Mavi",
-    palettePurple:"Mor",
-    paletteYellow:"Sarı",
-    palettePink:"Pembe",
-    paletteGreen:"Yeşil",
-    paletteOrange:"Turuncu",
-    paletteRed:"Kırmızı"
-};
-
-const PL = {
-    ...EN,
-    easy:"Łatwy",
-    medium:"Średni",
-    hard:"Trudny",
-    expert:"Ekspert",
-    extreme:"Ekstremalny",
-    settings:"Ustawienia",
-    stats:"Statystyki",
-    theme:"Motyw",
-    system:"System",
-    light:"Jasny",
-    dark:"Ciemny",
-    language:"Język",
-    boardColor:"Kolor interfejsu",
-    feedback:"Informacje zwrotne",
-    wins:"Zwycięstwa",
-    bestTime:"Najlepszy czas",
-    newGame:"Nowa gra",
-    startGame:"Rozpocznij grę",
-    cancel:"Anuluj",
-    close:"Zamknij",
-    paletteMono:"Monochromatyczny",
-    paletteBlue:"Niebieski",
-    palettePurple:"Fioletowy",
-    paletteYellow:"Żółty",
-    palettePink:"Różowy",
-    paletteGreen:"Zielony",
-    paletteOrange:"Pomarańczowy",
-    paletteRed:"Czerwony"
-};
-
-const ZH = {
-    ...EN,
-    title:"数独",
-    easy:"简单",
-    medium:"中等",
-    hard:"困难",
-    expert:"专家",
-    extreme:"极难",
-    time:"时间",
-    errors:"错误",
-    stop:"暂停",
-    pencil:"笔记",
-    erase:"删除",
-    newGame:"新游戏",
-    pause:"暂停",
-    continue:"继续",
-    gameOver:"游戏结束",
-    solved:"数独完成",
-    settings:"设置",
-    stats:"统计",
-    theme:"主题",
-    system:"系统",
-    light:"浅色",
-    dark:"深色",
-    language:"语言",
-    boardColor:"界面颜色",
-    feedback:"反馈",
-    sound:"声音",
-    vibration:"振动",
-    wins:"胜利",
-    bestTime:"最佳时间",
-    cancel:"取消",
-    close:"关闭",
-    startGame:"开始游戏",
-    paletteMono:"单色",
-    paletteBlue:"蓝色",
-    palettePurple:"紫色",
-    paletteYellow:"黄色",
-    palettePink:"粉色",
-    paletteGreen:"绿色",
-    paletteOrange:"橙色",
-    paletteRed:"红色"
-};
-
-const I18N = {
-    ru:RU,
-    en:EN,
-    es:ES,
-    de:DE,
-    fr:FR,
-    pt:PT,
-    it:IT,
-    tr:TR,
-    pl:PL,
-    zh:ZH
-};
-
-let elements = {};
-let timerHandle = null;
-let saveHandle = null;
-let toastHandle = null;
-let confirmCallback = null;
-let pendingDifficulty = "easy";
-let audioContext = null;
-function createEmptyNotes() {
-    return Array.from(
-        { length: 81 },
-        () => []
-    );
-}
-
-
-function updateNotesButton() {
-    if (
-        !elements.notesButton
-    ) {
-        return;
-    }
-
-    elements.notesButton.setAttribute(
-        "aria-pressed",
-        String(
-            state.notesMode
-        )
-    );
-}
-
-
-function updateDifficultyLabel() {
-    if (
-        !elements.difficultyLabel
-    ) {
-        return;
-    }
-
-    const difficulty =
-        DIFFICULTIES[
-            state.difficulty
-        ];
-
-    if (
-        !difficulty
-    ) {
-        return;
-    }
-
-    elements.difficultyLabel.textContent =
-        t(
-            difficulty.label
-        );
-}
-
-
-function updateSettingsUI() {
-    if (
-        elements.soundToggle
-    ) {
-        elements.soundToggle.checked =
-            state.settings.sound;
-    }
-
-    if (
-        elements.vibrationToggle
-    ) {
-        elements.vibrationToggle.checked =
-            state.settings.vibration;
-    }
-
-    const themeButtons =
-        document.querySelectorAll(
-            ".theme-option"
-        );
-
-    themeButtons.forEach(
-        button => {
-            const active =
-                button.dataset.theme ===
-                state.settings.theme;
-
-            button.classList.toggle(
-                "active",
-                active
-            );
-
-            button.setAttribute(
-                "aria-pressed",
-                String(active)
-            );
-        }
-    );
-
-    renderLanguageOptions();
-    renderPaletteOptions();
-}
-let state = {
-    difficulty:"easy",
-    puzzle:[],
-    solution:[],
-    board:[],
-    notes:createEmptyNotes(),
-    selectedIndex:null,
-    errors:0,
-    elapsedMs:0,
-    startedAt:null,
-    isPaused:false,
-    isGameOver:false,
-    isWon:false,
-    notesMode:false,
-    settings:{...DEFAULT_SETTINGS},
-    stats:cloneStats(DEFAULT_STATS)
 };
 
 
 /* =========================================================
-   BOOT
+   COLOR PALETTES
    ========================================================= */
 
-document.addEventListener(
-    "DOMContentLoaded",
-    boot,
-    { once:true }
-);
+const PALETTES = {
+    mono: {
+        labelKey: "paletteMono",
+        color: "#55575d"
+    },
 
-function boot() {
-    cacheElements();
+    blue: {
+        labelKey: "paletteBlue",
+        color: "#3976d8"
+    },
+
+    purple: {
+        labelKey: "palettePurple",
+        color: "#7554c7"
+    },
+
+    yellow: {
+        labelKey: "paletteYellow",
+        color: "#d4a51d"
+    },
+
+    pink: {
+        labelKey: "palettePink",
+        color: "#d65c91"
+    },
+
+    green: {
+        labelKey: "paletteGreen",
+        color: "#42915d"
+    },
+
+    orange: {
+        labelKey: "paletteOrange",
+        color: "#d67832"
+    },
+
+    red: {
+        labelKey: "paletteRed",
+        color: "#c85454"
+    }
+};
+
+
+/* =========================================================
+   LANGUAGES
+   ========================================================= */
+
+const LANGUAGES = [
+    ["ru", "Русский"],
+    ["en", "English"],
+    ["es", "Español"],
+    ["de", "Deutsch"],
+    ["fr", "Français"],
+    ["pt", "Português"],
+    ["it", "Italiano"],
+    ["tr", "Türkçe"],
+    ["pl", "Polski"],
+    ["zh", "中文"]
+];
+
+
+/* =========================================================
+   DEFAULT SETTINGS
+   ========================================================= */
+
+const DEFAULT_SETTINGS = {
+    theme: "system",
+    language: "ru",
+    palette: "mono",
+    sound: true,
+    vibration: true
+};
+
+
+/* =========================================================
+   DEFAULT STATISTICS
+   ========================================================= */
+
+const DEFAULT_STATS = {
+    totalWins: 0,
+
+    bestTimes: {
+        easy: null,
+        medium: null,
+        hard: null,
+        expert: null,
+        extreme: null
+    }
+};
+
+
+/* =========================================================
+   TRANSLATIONS
+   ========================================================= */
+
+const I18N = {
+    ru: {
+        title: "Судоку",
+
+        easy: "Легкий",
+        medium: "Средний",
+        hard: "Сложный",
+        expert: "Эксперт",
+        extreme: "Экстремальный",
+
+        time: "Время",
+        errors: "Ошибки",
+
+        stop: "Стоп",
+        pencil: "Карандаш",
+        erase: "Удалить",
+        newGame: "Новая игра",
+
+        pause: "Пауза",
+        gameStopped: "Игра остановлена",
+        continue: "Продолжить",
+
+        gameOver: "Игра окончена",
+        threeMistakes: "Допущено 3 ошибки",
+
+        solved: "Судоку решено",
+        yourTime: "Твое время",
+
+        settings: "Настройки",
+        stats: "Статистика",
+
+        theme: "Тема",
+
+        system: "Системная",
+        systemDesc: "Как на телефоне",
+
+        light: "Светлая",
+        lightDesc: "Светлый интерфейс",
+
+        dark: "Темная",
+        darkDesc: "Темный интерфейс",
+
+        language: "Язык",
+        languageDesc: "Язык интерфейса",
+
+        boardColor: "Цвет интерфейса",
+        boardColorDesc:
+            "Монохромная цветовая палитра",
+
+        feedback: "Обратная связь",
+
+        sound: "Звуки",
+        soundDesc:
+            "Звуки нажатий и ошибок",
+
+        vibration: "Вибрация",
+        vibrationDesc:
+            "Тактильная обратная связь",
+
+        game: "Игра",
+
+        resetSaved:
+            "Сбросить сохраненную игру",
+
+        resetSavedDesc:
+            "Начать текущий уровень заново",
+
+        wins: "Побед",
+        bestTime: "Лучшее время",
+
+        resetStats:
+            "Сбросить статистику",
+
+        resetStatsDesc:
+            "Удалить все сохраненные результаты",
+
+        newGameTitle: "Новая игра",
+        startGame: "Начать игру",
+
+        confirm: "Подтверждение",
+        areYouSure: "Ты уверен?",
+
+        cancel: "Отмена",
+        close: "Закрыть",
+
+        firstSelect:
+            "Сначала выбери клетку",
+
+        cannotChange:
+            "Эту клетку нельзя изменить",
+
+        cannotDelete:
+            "Исходную цифру удалить нельзя",
+
+        invalidMove:
+            "Такая цифра уже есть в строке, столбце или блоке",
+
+        gameReset:
+            "Игра сброшена",
+
+        statsReset:
+            "Статистика сброшена",
+
+        smartHint:
+            "В некоторых группах осталась одна клетка",
+
+        paletteMono: "Монохром",
+        paletteBlue: "Синий",
+        palettePurple: "Фиолетовый",
+        paletteYellow: "Желтый",
+        palettePink: "Розовый",
+        paletteGreen: "Зеленый",
+        paletteOrange: "Оранжевый",
+        paletteRed: "Красный",
+
+        easyDesc:
+            "Много исходных цифр",
+
+        mediumDesc:
+            "Требует концентрации",
+
+        hardDesc:
+            "Меньше исходных цифр",
+
+        expertDesc:
+            "Высокая сложность",
+
+        extremeDesc:
+            "Минимум исходных цифр"
+    },
+
+    en: {
+        title: "Sudoku",
+
+        easy: "Easy",
+        medium: "Medium",
+        hard: "Hard",
+        expert: "Expert",
+        extreme: "Extreme",
+
+        time: "Time",
+        errors: "Mistakes",
+
+        stop: "Pause",
+        pencil: "Notes",
+        erase: "Erase",
+        newGame: "New game",
+
+        pause: "Paused",
+        gameStopped: "Game is paused",
+        continue: "Continue",
+
+        gameOver: "Game over",
+        threeMistakes: "3 mistakes made",
+
+        solved: "Sudoku solved",
+        yourTime: "Your time",
+
+        settings: "Settings",
+        stats: "Statistics",
+
+        theme: "Theme",
+
+        system: "System",
+        systemDesc: "Use phone setting",
+
+        light: "Light",
+        lightDesc: "Light interface",
+
+        dark: "Dark",
+        darkDesc: "Dark interface",
+
+        language: "Language",
+        languageDesc: "Interface language",
+
+        boardColor: "Interface color",
+        boardColorDesc:
+            "Monochrome color palette",
+
+        feedback: "Feedback",
+
+        sound: "Sounds",
+        soundDesc:
+            "Tap and error sounds",
+
+        vibration: "Vibration",
+        vibrationDesc:
+            "Haptic feedback",
+
+        game: "Game",
+
+        resetSaved:
+            "Reset saved game",
+
+        resetSavedDesc:
+            "Restart the current difficulty",
+
+        wins: "Wins",
+        bestTime: "Best time",
+
+        resetStats:
+            "Reset statistics",
+
+        resetStatsDesc:
+            "Delete all saved results",
+
+        newGameTitle: "New game",
+        startGame: "Start game",
+
+        confirm: "Confirmation",
+        areYouSure: "Are you sure?",
+
+        cancel: "Cancel",
+        close: "Close",
+
+        firstSelect:
+            "Select a cell first",
+
+        cannotChange:
+            "This cell cannot be changed",
+
+        cannotDelete:
+            "Given number cannot be deleted",
+
+        invalidMove:
+            "That number already exists in the row, column or box",
+
+        gameReset:
+            "Game reset",
+
+        statsReset:
+            "Statistics reset",
+
+        smartHint:
+            "Some groups have one empty cell left",
+
+        paletteMono: "Monochrome",
+        paletteBlue: "Blue",
+        palettePurple: "Purple",
+        paletteYellow: "Yellow",
+        palettePink: "Pink",
+        paletteGreen: "Green",
+        paletteOrange: "Orange",
+        paletteRed: "Red",
+
+        easyDesc:
+            "Many given numbers",
+
+        mediumDesc:
+            "Requires focus",
+
+        hardDesc:
+            "Fewer given numbers",
+
+        expertDesc:
+            "High difficulty",
+
+        extremeDesc:
+            "Very few given numbers"
+    },
+
+    es: {
+        title: "Sudoku",
+
+        easy: "Fácil",
+        medium: "Medio",
+        hard: "Difícil",
+        expert: "Experto",
+        extreme: "Extremo",
+
+        time: "Tiempo",
+        errors: "Errores",
+
+        stop: "Pausa",
+        pencil: "Notas",
+        erase: "Borrar",
+        newGame: "Nueva partida",
+
+        pause: "Pausa",
+        gameStopped: "Partida pausada",
+        continue: "Continuar",
+
+        gameOver: "Fin de la partida",
+        threeMistakes: "3 errores cometidos",
+
+        solved: "Sudoku resuelto",
+        yourTime: "Tu tiempo",
+
+        settings: "Ajustes",
+        stats: "Estadísticas",
+
+        theme: "Tema",
+
+        system: "Sistema",
+        systemDesc:
+            "Usar el tema del teléfono",
+
+        light: "Claro",
+        lightDesc:
+            "Interfaz clara",
+
+        dark: "Oscuro",
+        darkDesc:
+            "Interfaz oscura",
+
+        language: "Idioma",
+        languageDesc:
+            "Idioma de la interfaz",
+
+        boardColor: "Color de la interfaz",
+        boardColorDesc:
+            "Paleta monocromática",
+
+        feedback: "Respuesta",
+
+        sound: "Sonidos",
+        soundDesc:
+            "Sonidos de toque y error",
+
+        vibration: "Vibración",
+        vibrationDesc:
+            "Respuesta háptica",
+
+        game: "Juego",
+
+        resetSaved:
+            "Reiniciar partida guardada",
+
+        resetSavedDesc:
+            "Reiniciar esta dificultad",
+
+        wins: "Victorias",
+        bestTime: "Mejor tiempo",
+
+        resetStats:
+            "Restablecer estadísticas",
+
+        resetStatsDesc:
+            "Eliminar todos los resultados",
+
+        newGameTitle: "Nueva partida",
+        startGame: "Empezar",
+
+        confirm: "Confirmación",
+        areYouSure: "¿Estás seguro?",
+
+        cancel: "Cancelar",
+        close: "Cerrar",
+
+        firstSelect:
+            "Selecciona una celda primero",
+
+        cannotChange:
+            "Esta celda no se puede cambiar",
+
+        cannotDelete:
+            "No puedes borrar un número dado",
+
+        invalidMove:
+            "Ese número ya existe en la fila, columna o bloque",
+
+        gameReset:
+            "Partida reiniciada",
+
+        statsReset:
+            "Estadísticas reiniciadas",
+
+        smartHint:
+            "Algunos grupos tienen una sola celda vacía",
+
+        paletteMono: "Monocromo",
+        paletteBlue: "Azul",
+        palettePurple: "Morado",
+        paletteYellow: "Amarillo",
+        palettePink: "Rosa",
+        paletteGreen: "Verde",
+        paletteOrange: "Naranja",
+        paletteRed: "Rojo",
+
+        easyDesc:
+            "Muchas cifras dadas",
+
+        mediumDesc:
+            "Requiere concentración",
+
+        hardDesc:
+            "Menos cifras dadas",
+
+        expertDesc:
+            "Alta dificultad",
+
+        extremeDesc:
+            "Muy pocas cifras dadas"
+    }
+};
+
+
+/* =========================================================
+   ADDITIONAL TRANSLATIONS
+   ========================================================= */
+
+I18N.de = {
+    ...I18N.en,
+
+    easy: "Leicht",
+    medium: "Mittel",
+    hard: "Schwer",
+    expert: "Experte",
+    extreme: "Extrem",
+
+    time: "Zeit",
+    errors: "Fehler",
+
+    stop: "Pause",
+    pencil: "Notizen",
+    erase: "Löschen",
+    newGame: "Neues Spiel",
+
+    pause: "Pause",
+    gameStopped: "Spiel pausiert",
+    continue: "Fortsetzen",
+
+    gameOver: "Spiel beendet",
+    threeMistakes: "3 Fehler gemacht",
+
+    yourTime: "Deine Zeit",
+
+    settings: "Einstellungen",
+    stats: "Statistik",
+
+    theme: "Design",
+
+    system: "System",
+    systemDesc: "Wie auf dem Telefon",
+
+    light: "Hell",
+    lightDesc: "Helles Design",
+
+    dark: "Dunkel",
+    darkDesc: "Dunkles Design",
+
+    language: "Sprache",
+    languageDesc: "Oberflächensprache",
+
+    boardColor: "Oberflächenfarbe",
+    boardColorDesc:
+        "Monochrome Farbpalette",
+
+    feedback: "Feedback",
+
+    sound: "Töne",
+    soundDesc:
+        "Töne für Eingaben und Fehler",
+
+    vibration: "Vibration",
+    vibrationDesc:
+        "Haptisches Feedback",
+
+    game: "Spiel",
+
+    resetSaved:
+        "Gespeichertes Spiel zurücksetzen",
+
+    resetSavedDesc:
+        "Aktuellen Schwierigkeitsgrad neu starten",
+
+    wins: "Siege",
+    bestTime: "Bestzeit",
+
+    resetStats:
+        "Statistik zurücksetzen",
+
+    resetStatsDesc:
+        "Alle gespeicherten Ergebnisse löschen",
+
+    newGameTitle: "Neues Spiel",
+    startGame: "Spiel starten",
+
+    confirm: "Bestätigung",
+    areYouSure: "Bist du sicher?",
+
+    cancel: "Abbrechen",
+    close: "Schließen",
+
+    firstSelect:
+        "Wähle zuerst eine Zelle",
+
+    cannotChange:
+        "Diese Zelle kann nicht geändert werden",
+
+    cannotDelete:
+        "Eine Vorgabe kann nicht gelöscht werden",
+
+    invalidMove:
+        "Diese Zahl gibt es bereits in Zeile, Spalte oder Block",
+
+    gameReset:
+        "Spiel zurückgesetzt",
+
+    statsReset:
+        "Statistik zurückgesetzt",
+
+    smartHint:
+        "In einigen Gruppen ist nur eine leere Zelle übrig",
+
+    paletteMono: "Monochrom",
+    paletteBlue: "Blau",
+    palettePurple: "Violett",
+    paletteYellow: "Gelb",
+    palettePink: "Rosa",
+    paletteGreen: "Grün",
+    paletteOrange: "Orange",
+    paletteRed: "Rot"
+};
+
+I18N.fr = {
+    ...I18N.en,
+
+    easy: "Facile",
+    medium: "Moyen",
+    hard: "Difficile",
+    expert: "Expert",
+    extreme: "Extrême",
+
+    time: "Temps",
+    errors: "Erreurs",
+
+    stop: "Pause",
+    pencil: "Notes",
+    erase: "Effacer",
+    newGame: "Nouvelle partie",
+
+    pause: "Pause",
+    gameStopped: "Partie en pause",
+    continue: "Continuer",
+
+    gameOver: "Partie terminée",
+    threeMistakes: "3 erreurs commises",
+
+    yourTime: "Ton temps",
+
+    settings: "Réglages",
+    stats: "Statistiques",
+
+    theme: "Thème",
+
+    system: "Système",
+    systemDesc:
+        "Comme sur le téléphone",
+
+    light: "Clair",
+    lightDesc:
+        "Interface claire",
+
+    dark: "Sombre",
+    darkDesc:
+        "Interface sombre",
+
+    language: "Langue",
+    languageDesc:
+        "Langue de l’interface",
+
+    boardColor:
+        "Couleur de l’interface",
+
+    boardColorDesc:
+        "Palette monochrome",
+
+    feedback: "Retour",
+
+    sound: "Sons",
+    soundDesc:
+        "Sons des touches et erreurs",
+
+    vibration: "Vibration",
+    vibrationDesc:
+        "Retour haptique",
+
+    game: "Jeu",
+
+    resetSaved:
+        "Réinitialiser la partie sauvegardée",
+
+    resetSavedDesc:
+        "Recommencer la difficulté actuelle",
+
+    wins: "Victoires",
+    bestTime: "Meilleur temps",
+
+    resetStats:
+        "Réinitialiser les statistiques",
+
+    resetStatsDesc:
+        "Supprimer tous les résultats",
+
+    newGameTitle:
+        "Nouvelle partie",
+
+    startGame:
+        "Commencer",
+
+    confirm:
+        "Confirmation",
+
+    areYouSure:
+        "Es-tu sûr ?",
+
+    cancel:
+        "Annuler",
+
+    close:
+        "Fermer",
+
+    firstSelect:
+        "Sélectionne d’abord une cellule",
+
+    cannotChange:
+        "Cette cellule ne peut pas être modifiée",
+
+    cannotDelete:
+        "Un nombre donné ne peut pas être supprimé",
+
+    invalidMove:
+        "Ce nombre existe déjà dans la ligne, colonne ou région",
+
+    gameReset:
+        "Partie réinitialisée",
+
+    statsReset:
+        "Statistiques réinitialisées",
+
+    smartHint:
+        "Certaines zones n’ont plus qu’une cellule vide",
+
+    paletteMono:
+        "Monochrome",
+
+    paletteBlue:
+        "Bleu",
+
+    palettePurple:
+        "Violet",
+
+    paletteYellow:
+        "Jaune",
+
+    palettePink:
+        "Rose",
+
+    paletteGreen:
+        "Vert",
+
+    paletteOrange:
+        "Orange",
+
+    paletteRed:
+        "Rouge"
+};
+
+
+/* =========================================================
+   BASIC TRANSLATION FALLBACK
+   ========================================================= */
+
+I18N.pt = {
+    ...I18N.en,
+    easy: "Fácil",
+    medium: "Médio",
+    hard: "Difícil",
+    expert: "Especialista",
+    extreme: "Extremo",
+
+    time: "Tempo",
+    errors: "Erros",
+
+    stop: "Pausa",
+    pencil: "Notas",
+    erase: "Apagar",
+    newGame: "Novo jogo",
+
+    settings: "Configurações",
+    stats: "Estatísticas",
+
+    theme: "Tema",
+    system: "Sistema",
+    light: "Claro",
+    dark: "Escuro",
+
+    language: "Idioma",
+    languageDesc: "Idioma da interface",
+
+    boardColor: "Cor da interface",
+
+    feedback: "Feedback",
+    sound: "Sons",
+    vibration: "Vibração",
+
+    game: "Jogo",
+
+    wins: "Vitórias",
+    bestTime: "Melhor tempo",
+
+    cancel: "Cancelar",
+    close: "Fechar",
+
+    startGame: "Começar",
+
+    paletteMono: "Monocromático",
+    paletteBlue: "Azul",
+    palettePurple: "Roxo",
+    paletteYellow: "Amarelo",
+    palettePink: "Rosa",
+    paletteGreen: "Verde",
+    paletteOrange: "Laranja",
+    paletteRed: "Vermelho"
+};
+
+I18N.it = {
+    ...I18N.en,
+    easy: "Facile",
+    medium: "Medio",
+    hard: "Difficile",
+    expert: "Esperto",
+    extreme: "Estremo",
+
+    time: "Tempo",
+    errors: "Errori",
+
+    stop: "Pausa",
+    pencil: "Note",
+    erase: "Cancella",
+    newGame: "Nuova partita",
+
+    settings: "Impostazioni",
+    stats: "Statistiche",
+
+    theme: "Tema",
+    system: "Sistema",
+    light: "Chiaro",
+    dark: "Scuro",
+
+    language: "Lingua",
+    languageDesc:
+        "Lingua dell’interfaccia",
+
+    boardColor:
+        "Colore interfaccia",
+
+    feedback: "Feedback",
+    sound: "Suoni",
+    vibration: "Vibrazione",
+
+    game: "Gioco",
+
+    wins: "Vittorie",
+    bestTime: "Miglior tempo",
+
+    cancel: "Annulla",
+    close: "Chiudi",
+
+    startGame: "Inizia partita",
+
+    paletteMono: "Monocromatico",
+    paletteBlue: "Blu",
+    palettePurple: "Viola",
+    paletteYellow: "Giallo",
+    palettePink: "Rosa",
+    paletteGreen: "Verde",
+    paletteOrange: "Arancione",
+    paletteRed: "Rosso"
+};
+
+I18N.tr = {
+    ...I18N.en,
+    easy: "Kolay",
+    medium: "Orta",
+    hard: "Zor",
+    expert: "Uzman",
+    extreme: "Ekstrem",
+
+    time: "Süre",
+    errors: "Hata",
+
+    stop: "Duraklat",
+    pencil: "Notlar",
+    erase: "Sil",
+    newGame: "Yeni oyun",
+
+    settings: "Ayarlar",
+    stats: "İstatistik",
+
+    theme: "Tema",
+    system: "Sistem",
+    light: "Açık",
+    dark: "Koyu",
+
+    language: "Dil",
+    languageDesc: "Arayüz dili",
+
+    boardColor: "Arayüz rengi",
+
+    feedback: "Geri bildirim",
+    sound: "Sesler",
+    vibration: "Titreşim",
+
+    game: "Oyun",
+
+    wins: "Galibiyet",
+    bestTime: "En iyi süre",
+
+    cancel: "İptal",
+    close: "Kapat",
+
+    startGame: "Oyunu başlat",
+
+    paletteMono: "Monokrom",
+    paletteBlue: "Mavi",
+    palettePurple: "Mor",
+    paletteYellow: "Sarı",
+    palettePink: "Pembe",
+    paletteGreen: "Yeşil",
+    paletteOrange: "Turuncu",
+    paletteRed: "Kırmızı"
+};
+
+I18N.pl = {
+    ...I18N.en,
+    easy: "Łatwy",
+    medium: "Średni",
+    hard: "Trudny",
+    expert: "Ekspert",
+    extreme: "Ekstremalny",
+
+    time: "Czas",
+    errors: "Błędy",
+
+    stop: "Pauza",
+    pencil: "Notatki",
+    erase: "Usuń",
+    newGame: "Nowa gra",
+
+    settings: "Ustawienia",
+    stats: "Statystyki",
+
+    theme: "Motyw",
+    system: "System",
+    light: "Jasny",
+    dark: "Ciemny",
+
+    language: "Język",
+    languageDesc:
+        "Język interfejsu",
+
+    boardColor:
+        "Kolor interfejsu",
+
+    feedback:
+        "Informacje zwrotne",
+
+    sound: "Dźwięki",
+    vibration: "Wibracje",
+
+    game: "Gra",
+
+    wins: "Zwycięstwa",
+    bestTime: "Najlepszy czas",
+
+    cancel: "Anuluj",
+    close: "Zamknij",
+
+    startGame:
+        "Rozpocznij grę",
+
+    paletteMono: "Monochromatyczny",
+    paletteBlue: "Niebieski",
+    palettePurple: "Fioletowy",
+    paletteYellow: "Żółty",
+    palettePink: "Różowy",
+    paletteGreen: "Zielony",
+    paletteOrange: "Pomarańczowy",
+    paletteRed: "Czerwony"
+};
+
+I18N.zh = {
+    ...I18N.en,
+    title: "数独",
+
+    easy: "简单",
+    medium: "中等",
+    hard: "困难",
+    expert: "专家",
+    extreme: "极难",
+
+    time: "时间",
+    errors: "错误",
+
+    stop: "暂停",
+    pencil: "笔记",
+    erase: "删除",
+    newGame: "新游戏",
+
+    pause: "暂停",
+    continue: "继续",
+
+    gameOver: "游戏结束",
+    solved: "数独完成",
+
+    settings: "设置",
+    stats: "统计",
+
+    theme: "主题",
+    system: "系统",
+    light: "浅色",
+    dark: "深色",
+
+    language: "语言",
+    languageDesc: "界面语言",
+
+    boardColor: "界面颜色",
+
+    feedback: "反馈",
+    sound: "声音",
+    vibration: "振动",
+
+    game: "游戏",
+
+    wins: "胜利",
+    bestTime: "最佳时间",
+
+    cancel: "取消",
+    close: "关闭",
+
+    startGame: "开始游戏",
+
+    paletteMono: "单色",
+    paletteBlue: "蓝色",
+    palettePurple: "紫色",
+    paletteYellow: "黄色",
+    palettePink: "粉色",
+    paletteGreen: "绿色",
+    paletteOrange: "橙色",
+    paletteRed: "红色"
+};
+
+
+/* =========================================================
+   DOM ELEMENTS
+   ========================================================= */
+
+const elements = {
+    app: document.getElementById("app"),
+
+    difficultyLabel:
+        document.getElementById(
+            "difficultyLabel"
+        ),
+
+    timer:
+        document.getElementById(
+            "timer"
+        ),
+
+    lives:
+        document.getElementById(
+            "lives"
+        ),
+
+    pauseButton:
+        document.getElementById(
+            "pauseButton"
+        ),
+
+    sudokuBoard:
+        document.getElementById(
+            "sudokuBoard"
+        ),
+
+    boardWrapper:
+        document.getElementById(
+            "boardWrapper"
+        ),
+
+    smartHint:
+        document.getElementById(
+            "smartHint"
+        ),
+
+    smartHintText:
+        document.getElementById(
+            "smartHintText"
+        ),
+
+    notesButton:
+        document.getElementById(
+            "notesButton"
+        ),
+
+    eraseButton:
+        document.getElementById(
+            "eraseButton"
+        ),
+
+    newGameButton:
+        document.getElementById(
+            "newGameButton"
+        ),
+
+    numberPad:
+        document.getElementById(
+            "numberPad"
+        ),
+
+    settingsButton:
+        document.getElementById(
+            "settingsButton"
+        ),
+
+    statsButton:
+        document.getElementById(
+            "statsButton"
+        ),
+
+    settingsPanel:
+        document.getElementById(
+            "settingsPanel"
+        ),
+
+    statsPanel:
+        document.getElementById(
+            "statsPanel"
+        ),
+
+    closeSettingsButton:
+        document.getElementById(
+            "closeSettingsButton"
+        ),
+
+    closeStatsButton:
+        document.getElementById(
+            "closeStatsButton"
+        ),
+
+    panelBackdrop:
+        document.getElementById(
+            "panelBackdrop"
+        ),
+
+    themeSelector:
+        document.getElementById(
+            "themeSelector"
+        ),
+
+    soundToggle:
+        document.getElementById(
+            "soundToggle"
+        ),
+
+    vibrationToggle:
+        document.getElementById(
+            "vibrationToggle"
+        ),
+
+    clearSavedGameButton:
+        document.getElementById(
+            "clearSavedGameButton"
+        ),
+
+    totalWins:
+        document.getElementById(
+            "totalWins"
+        ),
+
+    bestTimeEasy:
+        document.getElementById(
+            "bestTimeEasy"
+        ),
+
+    bestTimeMedium:
+        document.getElementById(
+            "bestTimeMedium"
+        ),
+
+    bestTimeHard:
+        document.getElementById(
+            "bestTimeHard"
+        ),
+
+    bestTimeExpert:
+        document.getElementById(
+            "bestTimeExpert"
+        ),
+
+    bestTimeExtreme:
+        document.getElementById(
+            "bestTimeExtreme"
+        ),
+
+    resetStatsButton:
+        document.getElementById(
+            "resetStatsButton"
+        ),
+
+    pauseOverlay:
+        document.getElementById(
+            "pauseOverlay"
+        ),
+
+    resumeButton:
+        document.getElementById(
+            "resumeButton"
+        ),
+
+    gameOverOverlay:
+        document.getElementById(
+            "gameOverOverlay"
+        ),
+
+    gameOverNewGameButton:
+        document.getElementById(
+            "gameOverNewGameButton"
+        ),
+
+    winOverlay:
+        document.getElementById(
+            "winOverlay"
+        ),
+
+    winTime:
+        document.getElementById(
+            "winTime"
+        ),
+
+    winNewGameButton:
+        document.getElementById(
+            "winNewGameButton"
+        ),
+
+    difficultyModal:
+        document.getElementById(
+            "difficultyModal"
+        ),
+
+    closeDifficultyButton:
+        document.getElementById(
+            "closeDifficultyButton"
+        ),
+
+    difficultyList:
+        document.getElementById(
+            "difficultyList"
+        ),
+
+    confirmNewGameButton:
+        document.getElementById(
+            "confirmNewGameButton"
+        ),
+
+    confirmModal:
+        document.getElementById(
+            "confirmModal"
+        ),
+
+    closeConfirmButton:
+        document.getElementById(
+            "closeConfirmButton"
+        ),
+
+    cancelConfirmButton:
+        document.getElementById(
+            "cancelConfirmButton"
+        ),
+
+    acceptConfirmButton:
+        document.getElementById(
+            "acceptConfirmButton"
+        ),
+
+    confirmModalTitle:
+        document.getElementById(
+            "confirmModalTitle"
+        ),
+
+    confirmModalMessage:
+        document.getElementById(
+            "confirmModalMessage"
+        ),
+
+    toast:
+        document.getElementById(
+            "toast"
+        ),
+
+    toastMessage:
+        document.getElementById(
+            "toastMessage"
+        )
+};
+
+
+/* =========================================================
+   APPLICATION STATE
+   ========================================================= */
+
+let state = {
+    difficulty: "easy",
+
+    puzzle: [],
+
+    solution: [],
+
+    board: [],
+
+    notes: [],
+
+    selectedIndex: null,
+
+    errors: 0,
+
+    elapsedMs: 0,
+
+    startedAt: null,
+
+    isPaused: false,
+
+    isGameOver: false,
+
+    isWon: false,
+
+    notesMode: false,
+
+    settings: {
+        ...DEFAULT_SETTINGS
+    },
+
+    stats: cloneStats(
+        DEFAULT_STATS
+    )
+};
+
+let timerInterval = null;
+let saveInterval = null;
+
+let toastTimeout = null;
+
+let confirmCallback = null;
+
+let pendingDifficulty = "easy";
+
+let audioContext = null;
+
+
+/* =========================================================
+   INITIALIZATION
+   ========================================================= */
+
+function initialize() {
     loadSettings();
-    loadStats();
-    createBoard();
-    injectSettings();
-    bindEvents();
+
     applyTheme();
-    updateSettingsUI();
-    updateLanguageUI();
+
+    loadStatistics();
+
+    createBoard();
+
+    injectDynamicSettings();
+
+    bindEvents();
 
     const restored =
         loadSavedGame();
 
     if (!restored) {
         initializeNewGame("easy");
-    } else {
-        updateDifficultyLabel();
-        updateLives();
-        updateNotesButton();
-        renderBoard();
-        updateTimer();
     }
+
+    updateDifficultyLabel();
+
+    updateSettingsUI();
+
+    updateStatisticsUI();
+
+    updateLanguageUI();
+
+    renderBoard();
+
+    updateTimer();
+
+    updateLives();
+
+    updateNotesButton();
 
     startIntervals();
+
     registerServiceWorker();
-}
-
-
-/* =========================================================
-   DOM
-   ========================================================= */
-
-function cacheElements() {
-    const ids = [
-        "app",
-        "difficultyLabel",
-        "timer",
-        "lives",
-        "pauseButton",
-        "sudokuBoard",
-        "boardWrapper",
-        "smartHint",
-        "smartHintText",
-        "notesButton",
-        "eraseButton",
-        "newGameButton",
-        "numberPad",
-        "settingsButton",
-        "statsButton",
-        "settingsPanel",
-        "statsPanel",
-        "closeSettingsButton",
-        "closeStatsButton",
-        "panelBackdrop",
-        "themeSelector",
-        "soundToggle",
-        "vibrationToggle",
-        "clearSavedGameButton",
-        "totalWins",
-        "bestTimeEasy",
-        "bestTimeMedium",
-        "bestTimeHard",
-        "bestTimeExpert",
-        "bestTimeExtreme",
-        "resetStatsButton",
-        "pauseOverlay",
-        "resumeButton",
-        "gameOverOverlay",
-        "gameOverNewGameButton",
-        "winOverlay",
-        "winTime",
-        "winNewGameButton",
-        "difficultyModal",
-        "closeDifficultyButton",
-        "difficultyList",
-        "confirmNewGameButton",
-        "confirmModal",
-        "closeConfirmButton",
-        "cancelConfirmButton",
-        "acceptConfirmButton",
-        "confirmModalTitle",
-        "confirmModalMessage",
-        "toast",
-        "toastMessage"
-    ];
-
-    for (const id of ids) {
-        elements[id] =
-            document.getElementById(id);
-    }
 }
 
 
@@ -722,34 +1450,26 @@ function cacheElements() {
 
 function loadSettings() {
     const saved =
-        safeGet(
-            STORAGE.SETTINGS
+        safeStorageGet(
+            STORAGE_KEYS.SETTINGS
         );
+
+    if (
+        !saved ||
+        typeof saved !== "object"
+    ) {
+        state.settings =
+            {
+                ...DEFAULT_SETTINGS
+            };
+
+        return;
+    }
 
     state.settings = {
         ...DEFAULT_SETTINGS,
-        ...(saved || {})
+        ...saved
     };
-
-    if (
-        !Object.hasOwn(
-            PALETTES,
-            state.settings.palette
-        )
-    ) {
-        state.settings.palette =
-            "mono";
-    }
-
-    if (
-        !Object.hasOwn(
-            I18N,
-            state.settings.language
-        )
-    ) {
-        state.settings.language =
-            "ru";
-    }
 
     if (
         ![
@@ -764,6 +1484,24 @@ function loadSettings() {
             "system";
     }
 
+    if (
+        !I18N[
+            state.settings.language
+        ]
+    ) {
+        state.settings.language =
+            "ru";
+    }
+
+    if (
+        !PALETTES[
+            state.settings.palette
+        ]
+    ) {
+        state.settings.palette =
+            "mono";
+    }
+
     state.settings.sound =
         Boolean(
             state.settings.sound
@@ -776,37 +1514,46 @@ function loadSettings() {
 }
 
 function saveSettings() {
-    safeSet(
-        STORAGE.SETTINGS,
+    safeStorageSet(
+        STORAGE_KEYS.SETTINGS,
         state.settings
     );
 }
 
-function lang() {
+function currentLanguage() {
     return (
         I18N[
             state.settings.language
-        ] || RU
+        ] || I18N.ru
     );
 }
 
 function t(key) {
+    const language =
+        currentLanguage();
+
     return (
-        lang()[key] ??
-        EN[key] ??
+        language[key] ??
+        I18N.en[key] ??
         key
     );
 }
 
 
 /* =========================================================
-   THEME + PALETTE
+   THEME / PALETTE
    ========================================================= */
 
 function applyTheme() {
     document.documentElement.dataset.theme =
         state.settings.theme;
 
+    applyPalette();
+
+    updateThemeColor();
+}
+
+function applyPalette() {
     const palette =
         PALETTES[
             state.settings.palette
@@ -833,7 +1580,7 @@ function applyTheme() {
         "--accent-medium",
         rgba(
             palette.color,
-            0.22
+            0.20
         )
     );
 
@@ -841,9 +1588,33 @@ function applyTheme() {
         "--accent-strong",
         rgba(
             palette.color,
-            0.34
+            0.30
         )
     );
+}
+
+function updateThemeColor() {
+    const theme =
+        state.settings.theme;
+
+    let color;
+
+    if (
+        theme === "dark"
+    ) {
+        color = "#111214";
+    } else if (
+        theme === "light"
+    ) {
+        color = "#f7f7f8";
+    } else {
+        color =
+            window.matchMedia(
+                "(prefers-color-scheme: dark)"
+            ).matches
+                ? "#111214"
+                : "#f7f7f8";
+    }
 
     const meta =
         document.querySelector(
@@ -851,632 +1622,9 @@ function applyTheme() {
         );
 
     if (meta) {
-        const dark =
-            state.settings.theme ===
-                "dark" ||
-            (
-                state.settings.theme ===
-                    "system" &&
-                window.matchMedia(
-                    "(prefers-color-scheme: dark)"
-                ).matches
-            );
-
         meta.setAttribute(
             "content",
-            dark
-                ? "#111214"
-                : "#f7f7f8"
-        );
-    }
-}
-
-
-/* =========================================================
-   LOCALIZATION
-   ========================================================= */
-
-function updateLanguageUI() {
-    document.documentElement.lang =
-        state.settings.language;
-
-    document.title =
-        t("title");
-
-    const appTitle =
-        document.querySelector(
-            ".topbar-title h1"
-        );
-
-    if (appTitle) {
-        appTitle.textContent =
-            t("title");
-    }
-
-    const labels =
-        document.querySelectorAll(
-            ".info-label"
-        );
-
-    if (labels[0]) {
-        labels[0].textContent =
-            t("time");
-    }
-
-    if (labels[1]) {
-        labels[1].textContent =
-            t("errors");
-    }
-
-    setText(
-        elements.pauseButton?.querySelector(
-            "span"
-        ),
-        t("stop")
-    );
-
-    setText(
-        elements.notesButton?.querySelector(
-            "span"
-        ),
-        t("pencil")
-    );
-
-    setText(
-        elements.eraseButton?.querySelector(
-            "span"
-        ),
-        t("erase")
-    );
-
-    setText(
-        elements.newGameButton?.querySelector(
-            "span"
-        ),
-        t("newGame")
-    );
-
-    if (elements.resumeButton) {
-        elements.resumeButton.textContent =
-            t("continue");
-    }
-
-    if (
-        elements.gameOverNewGameButton
-    ) {
-        elements.gameOverNewGameButton.textContent =
-            t("newGame");
-    }
-
-    if (
-        elements.winNewGameButton
-    ) {
-        elements.winNewGameButton.textContent =
-            t("newGame");
-    }
-
-    setText(
-        elements.winOverlay?.querySelector(
-            ".win-time span"
-        ),
-        t("yourTime")
-    );
-
-    const headers =
-        elements.settingsPanel?.querySelectorAll(
-            ".panel-header h2"
-        );
-
-    if (headers?.[0]) {
-        headers[0].textContent =
-            t("settings");
-    }
-
-    if (headers?.[1]) {
-        headers[1].textContent =
-            t("stats");
-    }
-
-    const settingsHeadings =
-        elements.settingsPanel?.querySelectorAll(
-            ".settings-section h3"
-        );
-
-    if (settingsHeadings?.[0]) {
-        settingsHeadings[0].textContent =
-            t("theme");
-    }
-
-    if (settingsHeadings?.[1]) {
-        settingsHeadings[1].textContent =
-            t("language");
-    }
-
-    if (settingsHeadings?.[2]) {
-        settingsHeadings[2].textContent =
-            t("boardColor");
-    }
-
-    if (settingsHeadings?.[3]) {
-        settingsHeadings[3].textContent =
-            t("feedback");
-    }
-
-    if (settingsHeadings?.[4]) {
-        settingsHeadings[4].textContent =
-            t("game");
-    }
-
-    for (
-        const theme of [
-            "system",
-            "light",
-            "dark"
-        ]
-    ) {
-        const button =
-            document.querySelector(
-                `[data-theme="${theme}"]`
-            );
-
-        if (!button) {
-            continue;
-        }
-
-        setText(
-            button.querySelector(
-                ".theme-option-title"
-            ),
-            t(theme)
-        );
-
-        setText(
-            button.querySelector(
-                ".theme-option-description"
-            ),
-            t(`${theme}Desc`)
-        );
-    }
-
-    const feedbackRows = [
-        [
-            elements.soundToggle,
-            "sound",
-            "soundDesc"
-        ],
-        [
-            elements.vibrationToggle,
-            "vibration",
-            "vibrationDesc"
-        ],
-        [
-            elements.clearSavedGameButton,
-            "resetSaved",
-            "resetSavedDesc"
-        ],
-        [
-            elements.resetStatsButton,
-            "resetStats",
-            "resetStatsDesc"
-        ]
-    ];
-
-    for (
-        const [
-            input,
-            titleKey,
-            descriptionKey
-        ] of feedbackRows
-    ) {
-        const row =
-            input?.parentElement;
-
-        if (!row) {
-            continue;
-        }
-
-        setText(
-            row.querySelector(
-                ".setting-title"
-            ),
-            t(titleKey)
-        );
-
-        setText(
-            row.querySelector(
-                ".setting-description"
-            ),
-            t(descriptionKey)
-        );
-    }
-
-    setText(
-        elements.totalWins?.parentElement?.querySelector(
-            ".stat-card-label"
-        ),
-        t("wins")
-    );
-
-    setText(
-        elements.statsPanel?.querySelector(
-            ".stats-section h3"
-        ),
-        t("bestTime")
-    );
-
-    elements.statsPanel
-        ?.querySelectorAll(
-            ".difficulty-stat-name span"
-        )
-        .forEach(
-            (element, index) => {
-                const key =
-                    Object.keys(
-                        DIFFICULTIES
-                    )[index];
-
-                if (key) {
-                    element.textContent =
-                        t(key);
-                }
-            }
-        );
-
-    setText(
-        document.getElementById(
-            "languageHeading"
-        ),
-        t("language")
-    );
-
-    setText(
-        document.getElementById(
-            "languageDescription"
-        ),
-        t("languageDesc")
-    );
-
-    setText(
-        document.getElementById(
-            "paletteHeading"
-        ),
-        t("boardColor")
-    );
-
-    setText(
-        document.getElementById(
-            "paletteDescription"
-        ),
-        t("boardColorDesc")
-    );
-
-    setText(
-        elements.difficultyModal?.querySelector(
-            ".modal-header h2"
-        ),
-        t("newGameTitle")
-    );
-
-    if (
-        elements.confirmNewGameButton
-    ) {
-        elements.confirmNewGameButton.textContent =
-            t("startGame");
-    }
-
-    elements.difficultyList
-        ?.querySelectorAll(
-            ".difficulty-option"
-        )
-        .forEach(
-            option => {
-                const key =
-                    option.dataset
-                        .difficulty;
-
-                const definition =
-                    DIFFICULTIES[key];
-
-                if (!definition) {
-                    return;
-                }
-
-                setText(
-                    option.querySelector(
-                        ".difficulty-option-name"
-                    ),
-                    t(
-                        definition.label
-                    )
-                );
-
-                setText(
-                    option.querySelector(
-                        ".difficulty-option-description"
-                    ),
-                    t(
-                        definition.desc
-                    )
-                );
-            }
-        );
-
-    setText(
-        elements.pauseOverlay?.querySelector(
-            "h2"
-        ),
-        t("pause")
-    );
-
-    setText(
-        elements.pauseOverlay?.querySelector(
-            "p"
-        ),
-        t("gameStopped")
-    );
-
-    setText(
-        elements.gameOverOverlay?.querySelector(
-            "h2"
-        ),
-        t("gameOver")
-    );
-
-    setText(
-        elements.gameOverOverlay?.querySelector(
-            "p"
-        ),
-        t("threeMistakes")
-    );
-
-    setText(
-        elements.winOverlay?.querySelector(
-            "h2"
-        ),
-        t("solved")
-    );
-
-    renderLanguageOptions();
-    renderPaletteOptions();
-    updateDifficultyLabel();
-    updateLives();
-    updateStatisticsUI();
-    renderBoard();
-}
-
-function setText(
-    element,
-    text
-) {
-    if (element) {
-        element.textContent =
-            text;
-    }
-}
-
-
-/* =========================================================
-   DYNAMIC SETTINGS
-   ========================================================= */
-
-function injectSettings() {
-    const panel =
-        elements.settingsPanel?.querySelector(
-            ".panel-content"
-        );
-
-    if (
-        !panel ||
-        document.getElementById(
-            "dynamicLanguageSection"
-        )
-    ) {
-        return;
-    }
-
-    const sections =
-        panel.querySelectorAll(
-            ".settings-section"
-        );
-
-    const anchor =
-        sections[1] || null;
-
-    const languageSection =
-        document.createElement(
-            "section"
-        );
-
-    languageSection.className =
-        "settings-section";
-
-    languageSection.id =
-        "dynamicLanguageSection";
-
-    languageSection.innerHTML = `
-        <h3 id="languageHeading"></h3>
-        <p
-            class="dynamic-setting-description"
-            id="languageDescription"
-        ></p>
-
-        <div
-            class="language-list"
-            id="languageList"
-        ></div>
-    `;
-
-    const paletteSection =
-        document.createElement(
-            "section"
-        );
-
-    paletteSection.className =
-        "settings-section";
-
-    paletteSection.id =
-        "dynamicPaletteSection";
-
-    paletteSection.innerHTML = `
-        <h3 id="paletteHeading"></h3>
-
-        <p
-            class="dynamic-setting-description"
-            id="paletteDescription"
-        ></p>
-
-        <div
-            class="palette-grid"
-            id="paletteGrid"
-        ></div>
-    `;
-
-    if (anchor) {
-        panel.insertBefore(
-            languageSection,
-            anchor
-        );
-
-        panel.insertBefore(
-            paletteSection,
-            anchor
-        );
-    } else {
-        panel.append(
-            languageSection,
-            paletteSection
-        );
-    }
-}
-
-function renderLanguageOptions() {
-    const list =
-        document.getElementById(
-            "languageList"
-        );
-
-    if (!list) {
-        return;
-    }
-
-    list.innerHTML = "";
-
-    for (
-        const [
-            code,
-            name
-        ] of LANGUAGES
-    ) {
-        const button =
-            document.createElement(
-                "button"
-            );
-
-        button.type = "button";
-
-        button.className =
-            "language-option";
-
-        button.dataset.language =
-            code;
-
-        const active =
-            state.settings.language ===
-            code;
-
-        button.classList.toggle(
-            "active",
-            active
-        );
-
-        button.setAttribute(
-            "aria-pressed",
-            String(active)
-        );
-
-        button.innerHTML = `
-            <span>
-                ${escapeHTML(name)}
-            </span>
-
-            <span
-                class="language-check"
-                aria-hidden="true"
-            >
-                ✓
-            </span>
-        `;
-
-        list.appendChild(
-            button
-        );
-    }
-}
-
-function renderPaletteOptions() {
-    const grid =
-        document.getElementById(
-            "paletteGrid"
-        );
-
-    if (!grid) {
-        return;
-    }
-
-    grid.innerHTML = "";
-
-    for (
-        const [
-            key,
-            palette
-        ] of Object.entries(
-            PALETTES
-        )
-    ) {
-        const button =
-            document.createElement(
-                "button"
-            );
-
-        button.type = "button";
-
-        button.className =
-            "palette-option";
-
-        button.dataset.palette =
-            key;
-
-        const active =
-            state.settings.palette ===
-            key;
-
-        button.classList.toggle(
-            "active",
-            active
-        );
-
-        button.setAttribute(
-            "aria-pressed",
-            String(active)
-        );
-
-        button.innerHTML = `
-            <span class="palette-swatch"></span>
-            <span class="palette-label"></span>
-        `;
-
-        button.querySelector(
-            ".palette-swatch"
-        ).style.background =
-            palette.color;
-
-        button.querySelector(
-            ".palette-label"
-        ).textContent =
-            t(palette.key);
-
-        grid.appendChild(
-            button
+            color
         );
     }
 }
@@ -1486,421 +1634,503 @@ function renderPaletteOptions() {
    STATISTICS
    ========================================================= */
 
-function cloneStats(
-    source
-) {
+function cloneStats(stats) {
     return JSON.parse(
-        JSON.stringify(source)
+        JSON.stringify(stats)
     );
 }
 
-function loadStats() {
+function loadStatistics() {
     const saved =
-        safeGet(
-            STORAGE.STATS
-        );
-
-    state.stats =
-        cloneStats(
-            DEFAULT_STATS
+        safeStorageGet(
+            STORAGE_KEYS.STATS
         );
 
     if (
         !saved ||
-        typeof saved !==
-            "object"
+        typeof saved !== "object"
     ) {
+        state.stats =
+            cloneStats(
+                DEFAULT_STATS
+            );
+
         return;
     }
 
-    if (
-        Number.isFinite(
-            saved.totalWins
-        ) &&
-        saved.totalWins >= 0
-    ) {
-        state.stats.totalWins =
-            Math.floor(
-                saved.totalWins
-            );
-    }
+    state.stats = {
+        ...cloneStats(
+            DEFAULT_STATS
+        ),
 
-    if (
-        saved.bestTimes &&
-        typeof saved.bestTimes ===
-            "object"
-    ) {
-        for (
-            const difficulty of
-                Object.keys(
-                    DIFFICULTIES
-                )
-        ) {
-            const value =
-                saved.bestTimes[
-                    difficulty
-                ];
+        ...saved,
 
-            if (
-                value === null ||
-                (
-                    Number.isFinite(
-                        value
-                    ) &&
-                    value >= 0
-                )
-            ) {
-                state.stats.bestTimes[
-                    difficulty
-                ] = value;
-            }
+        bestTimes: {
+            ...DEFAULT_STATS.bestTimes,
+            ...(saved.bestTimes || {})
         }
+    };
+
+    if (
+        !Number.isFinite(
+            state.stats.totalWins
+        )
+    ) {
+        state.stats.totalWins = 0;
     }
 }
 
-function saveStats() {
-    safeSet(
-        STORAGE.STATS,
+function saveStatistics() {
+    safeStorageSet(
+        STORAGE_KEYS.STATS,
         state.stats
     );
 }
 
 function updateStatisticsUI() {
-    if (
-        !elements.totalWins
-    ) {
-        return;
-    }
-
     elements.totalWins.textContent =
         String(
             state.stats.totalWins
         );
 
-    const refs = {
-        easy: elements.bestTimeEasy,
-        medium: elements.bestTimeMedium,
-        hard: elements.bestTimeHard,
-        expert: elements.bestTimeExpert,
-        extreme: elements.bestTimeExtreme
+    const mapping = {
+        easy:
+            elements.bestTimeEasy,
+
+        medium:
+            elements.bestTimeMedium,
+
+        hard:
+            elements.bestTimeHard,
+
+        expert:
+            elements.bestTimeExpert,
+
+        extreme:
+            elements.bestTimeExtreme
     };
 
-    for (
-        const [
-            difficulty,
-            element
-        ] of Object.entries(refs)
-    ) {
-        const value =
-            state.stats.bestTimes[
-                difficulty
-            ];
+    Object.entries(mapping)
+        .forEach(
+            ([difficulty, element]) => {
+                const time =
+                    state.stats
+                        .bestTimes[
+                            difficulty
+                        ];
 
-        if (element) {
-            element.textContent =
-                value === null
-                    ? "--"
-                    : formatTime(value);
-        }
-    }
+                element.textContent =
+                    time === null
+                        ? "--"
+                        : formatTime(
+                              time
+                          );
+            }
+        );
 }
 
 function registerWin() {
+    const difficulty =
+        state.difficulty;
+
+    const finalTime =
+        getElapsedMs();
+
     state.stats.totalWins++;
 
-    const old =
+    const previousBest =
         state.stats.bestTimes[
-            state.difficulty
+            difficulty
         ];
 
     if (
-        old === null ||
-        state.elapsedMs < old
+        previousBest === null ||
+        finalTime < previousBest
     ) {
         state.stats.bestTimes[
-            state.difficulty
-        ] =
-            state.elapsedMs;
+            difficulty
+        ] = finalTime;
     }
 
-    saveStats();
+    saveStatistics();
+
     updateStatisticsUI();
 }
 
 
 /* =========================================================
+   END OF PART 1
+   ========================================================= */
+   /* =========================================================
    SUDOKU GENERATOR
    ========================================================= */
+
+/*
+ * Создаем полноценную решенную сетку.
+ *
+ * Используется стандартная конструкция
+ * корректного судоку + случайные перестановки.
+ *
+ * В результате:
+ *
+ * 1. В каждой строке 1..9 встречаются один раз.
+ * 2. В каждом столбце 1..9 встречаются один раз.
+ * 3. В каждом блоке 3x3 1..9 встречаются один раз.
+ *
+ * После генерации выполняется отдельная проверка.
+ */
 
 function generateSolvedGrid() {
     const base = [];
 
-    for (
-        let row = 0;
-        row < 9;
-        row++
-    ) {
-        for (
-            let col = 0;
-            col < 9;
-            col++
-        ) {
+    /*
+     * Базовая корректная сетка:
+     *
+     * 1 2 3 4 5 6 7 8 9
+     * 4 5 6 7 8 9 1 2 3
+     * 7 8 9 1 2 3 4 5 6
+     * ...
+     */
+
+    for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
             base.push(
-                (
-                    (
-                        row * 3 +
-                        Math.floor(
-                            row / 3
-                        ) +
-                        col
-                    ) % 9
-                ) + 1
+                basePattern(row, col)
             );
         }
     }
 
-    const digitMap =
-        shuffleArray(
-            DIGITS
-        );
+    /*
+     * Случайно переименовываем цифры.
+     */
 
-    for (
-        let index = 0;
-        index < 81;
-        index++
-    ) {
+    const numbers = shuffleArray([
+        1, 2, 3,
+        4, 5, 6,
+        7, 8, 9
+    ]);
+
+    for (let index = 0; index < 81; index++) {
         base[index] =
-            digitMap[
-                base[index] - 1
-            ];
+            numbers[base[index] - 1];
     }
 
-    const rowGroups =
-        shuffleArray(
-            [
-                [0,1,2],
-                [3,4,5],
-                [6,7,8]
-            ]
-        );
+    /*
+     * Переставляем группы строк.
+     *
+     * Внутри одного band можно менять
+     * отдельные строки между собой.
+     *
+     * Также можно менять сами bands.
+     */
 
-    const colGroups =
-        shuffleArray(
-            [
-                [0,1,2],
-                [3,4,5],
-                [6,7,8]
-            ]
-        );
+    const rowGroups = shuffleArray([
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8]
+    ]);
 
-    const rows =
-        rowGroups.flatMap(
-            group =>
-                shuffleArray(
-                    group
-                )
-        );
+    const colGroups = shuffleArray([
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8]
+    ]);
 
-    const cols =
-        colGroups.flatMap(
-            group =>
-                shuffleArray(
-                    group
-                )
-        );
+    const rows = [];
+
+    for (const group of rowGroups) {
+        const shuffledGroup =
+            shuffleArray(group);
+
+        rows.push(...shuffledGroup);
+    }
+
+    const cols = [];
+
+    for (const group of colGroups) {
+        const shuffledGroup =
+            shuffleArray(group);
+
+        cols.push(...shuffledGroup);
+    }
+
+    /*
+     * Формируем новую сетку.
+     */
 
     const grid = [];
 
-    for (
-        const row of rows
-    ) {
-        for (
-            const col of cols
-        ) {
+    for (const row of rows) {
+        for (const col of cols) {
             grid.push(
-                base[
-                    row * 9 +
-                    col
-                ]
+                base[row * 9 + col]
             );
         }
     }
 
-    if (
-        !validateCompleteGrid(
-            grid
-        )
-    ) {
+    /*
+     * Финальная независимая проверка.
+     *
+     * Если вдруг алгоритм будет изменен
+     * в будущем и допустит ошибку,
+     * некорректное поле не попадет в игру.
+     */
+
+    if (!validateCompleteGrid(grid)) {
         throw new Error(
-            "Generator produced invalid solution."
+            "Генератор создал некорректное решение."
         );
     }
 
     return grid;
 }
 
-function generatePuzzle(
-    difficulty
-) {
-    const definition =
-        DIFFICULTIES[
-            difficulty
-        ];
 
-    const target =
-        definition.clues;
+/*
+ * Формула базовой сетки.
+ */
+
+function basePattern(row, col) {
+    return (
+        (
+            row * 3 +
+            Math.floor(row / 3) +
+            col
+        ) % 9
+    ) + 1;
+}
+
+
+/* =========================================================
+   PUZZLE GENERATION
+   ========================================================= */
+
+/*
+ * Генерируем задачу нужной сложности.
+ *
+ * Важное отличие от старой версии:
+ *
+ * количество исходных цифр жестко задается
+ * уровнем сложности.
+ *
+ * Время прохождения вообще не участвует
+ * в определении сложности.
+ */
+
+function generatePuzzle(difficulty) {
+    const settings =
+        DIFFICULTIES[difficulty];
+
+    if (!settings) {
+        throw new Error(
+            `Неизвестная сложность: ${difficulty}`
+        );
+    }
 
     /*
-     * Поле принимается только тогда,
-     * когда получено РОВНО нужное
-     * количество исходных цифр.
+     * Пытаемся получить максимально близкое
+     * к целевому количеству подсказок поле.
+     *
+     * Несколько попыток нужны потому, что
+     * некоторые удаления нарушают уникальность.
      */
+
+    let bestResult = null;
+
+    let bestDistance = Infinity;
+
+    const attempts = 8;
 
     for (
         let attempt = 0;
-        attempt < 50;
+        attempt < attempts;
         attempt++
     ) {
         const solution =
             generateSolvedGrid();
 
         const puzzle =
-            removeToExact(
+            createPuzzleFromSolution(
                 solution,
-                target
+                settings.clues
             );
 
-        if (!puzzle) {
-            continue;
-        }
+        /*
+         * Дополнительная проверка.
+         */
 
-        if (
-            !validatePartialGrid(
-                puzzle
-            )
-        ) {
-            continue;
-        }
-
-        if (
-            countClues(
-                puzzle
-            ) !== target
-        ) {
-            continue;
-        }
-
-        if (
-            countSolutions(
-                puzzle,
-                2
-            ) !== 1
-        ) {
-            continue;
-        }
-
-        return {
+        if (!validatePuzzle(
             puzzle,
             solution
-        };
+        )) {
+            continue;
+        }
+
+        const clueCount =
+            countClues(puzzle);
+
+        const distance =
+            Math.abs(
+                clueCount -
+                settings.clues
+            );
+
+        if (
+            bestResult === null ||
+            distance < bestDistance
+        ) {
+            bestResult = {
+                puzzle,
+                solution
+            };
+
+            bestDistance = distance;
+        }
+
+        /*
+         * Если получили ровно целевое
+         * количество цифр, дальше
+         * бессмысленно продолжать.
+         */
+
+        if (
+            clueCount === settings.clues
+        ) {
+            break;
+        }
     }
 
-    throw new Error(
-        `Unable to generate exact ${difficulty} puzzle`
-    );
+    if (!bestResult) {
+        throw new Error(
+            "Не удалось создать корректную задачу."
+        );
+    }
+
+    return bestResult;
 }
 
-function removeToExact(
+
+/*
+ * Удаляем цифры из полного решения.
+ *
+ * После каждого удаления:
+ *
+ * 1. Проверяем отсутствие второго решения.
+ * 2. Если решение стало неуникальным,
+ *    возвращаем цифру обратно.
+ */
+
+function createPuzzleFromSolution(
     solution,
-    target
+    targetClues
 ) {
     const puzzle =
         [...solution];
 
-    let clues = 81;
+    let clueCount =
+        CELL_COUNT;
 
     const positions =
         shuffleArray(
             Array.from(
-                {
-                    length:81
-                },
-                (_, index) =>
-                    index
+                { length: CELL_COUNT },
+                (_, index) => index
             )
         );
 
-    for (
-        const index of positions
-    ) {
+    for (const index of positions) {
         if (
-            clues === target
+            clueCount <= targetClues
         ) {
-            return puzzle;
+            break;
         }
 
-        const old =
+        const original =
             puzzle[index];
 
         puzzle[index] = 0;
 
-        if (
+        /*
+         * Проверяем количество решений.
+         *
+         * Нас интересуют только значения:
+         *
+         * 0 решений
+         * 1 решение
+         * 2+ решений
+         *
+         * Поэтому solver останавливается уже
+         * после нахождения второго решения.
+         */
+
+        const solutionCount =
             countSolutions(
                 puzzle,
                 2
-            ) === 1
+            );
+
+        if (
+            solutionCount === 1
         ) {
-            clues--;
+            clueCount--;
         } else {
             puzzle[index] =
-                old;
+                original;
         }
     }
 
-    return clues === target
-        ? puzzle
-        : null;
+    return puzzle;
 }
 
 
 /* =========================================================
-   SUDOKU SOLVER
+   SOLVER
    ========================================================= */
+
+/*
+ * Возвращает количество решений,
+ * но не больше limit.
+ *
+ * Для проверки уникальности нам
+ * достаточно limit = 2.
+ */
 
 function countSolutions(
     grid,
     limit = 2
 ) {
-    const work =
+    const working =
         [...grid];
 
-    const rows =
-        Array(9).fill(0);
+    const rowMask =
+        new Array(9).fill(0);
 
-    const cols =
-        Array(9).fill(0);
+    const columnMask =
+        new Array(9).fill(0);
 
-    const boxes =
-        Array(9).fill(0);
+    const boxMask =
+        new Array(9).fill(0);
+
+    /*
+     * Заполняем маски существующими
+     * значениями и заодно проверяем,
+     * нет ли уже дубликатов.
+     */
 
     for (
         let index = 0;
-        index < 81;
+        index < CELL_COUNT;
         index++
     ) {
         const value =
-            work[index];
+            working[index];
 
-        if (
-            value === 0
-        ) {
+        if (value === 0) {
             continue;
         }
 
         if (
-            !Number.isInteger(
-                value
-            ) ||
+            !Number.isInteger(value) ||
             value < 1 ||
             value > 9
         ) {
@@ -1908,119 +2138,127 @@ function countSolutions(
         }
 
         const row =
-            Math.floor(
-                index / 9
-            );
+            Math.floor(index / 9);
 
         const col =
             index % 9;
 
         const box =
-            boxIndex(
-                row,
-                col
-            );
+            getBoxIndex(row, col);
 
         const bit =
             1 << value;
 
         if (
-            rows[row] & bit ||
-            cols[col] & bit ||
-            boxes[box] & bit
+            (rowMask[row] & bit) !== 0 ||
+            (columnMask[col] & bit) !== 0 ||
+            (boxMask[box] & bit) !== 0
         ) {
             return 0;
         }
 
-        rows[row] |= bit;
-        cols[col] |= bit;
-        boxes[box] |= bit;
+        rowMask[row] |= bit;
+        columnMask[col] |= bit;
+        boxMask[box] |= bit;
     }
 
     let solutions = 0;
 
     function search() {
-        if (
-            solutions >= limit
-        ) {
+        if (solutions >= limit) {
             return;
         }
 
-        let best =
-            -1;
+        /*
+         * Ищем пустую клетку с минимальным
+         * количеством возможных кандидатов.
+         *
+         * Это резко уменьшает количество
+         * перебора на сложных полях.
+         */
 
-        let mask = 0;
+        let bestIndex = -1;
 
-        let minimum =
-            10;
+        let bestMask = 0;
+
+        let bestCandidateCount = 10;
 
         for (
             let index = 0;
-            index < 81;
+            index < CELL_COUNT;
             index++
         ) {
             if (
-                work[index] !== 0
+                working[index] !== 0
             ) {
                 continue;
             }
 
             const row =
-                Math.floor(
-                    index / 9
-                );
+                Math.floor(index / 9);
 
             const col =
                 index % 9;
 
             const box =
-                boxIndex(
-                    row,
-                    col
-                );
+                getBoxIndex(row, col);
 
             const used =
-                rows[row] |
-                cols[col] |
-                boxes[box];
+                rowMask[row] |
+                columnMask[col] |
+                boxMask[box];
 
             const candidates =
-                ALL_MASK &
+                ALL_DIGITS_MASK &
                 ~used;
 
-            const count =
-                bitCount(
-                    candidates
-                );
+            const candidateCount =
+                bitCount(candidates);
+
+            /*
+             * Нет ни одного кандидата.
+             * Значит данная ветка невозможна.
+             */
 
             if (
-                count === 0
+                candidateCount === 0
             ) {
                 return;
             }
 
             if (
-                count < minimum
+                candidateCount <
+                bestCandidateCount
             ) {
-                minimum =
-                    count;
+                bestCandidateCount =
+                    candidateCount;
 
-                best =
+                bestIndex =
                     index;
 
-                mask =
+                bestMask =
                     candidates;
 
+                /*
+                 * Если кандидат всего один,
+                 * лучше уже не найти.
+                 */
+
                 if (
-                    count === 1
+                    candidateCount === 1
                 ) {
                     break;
                 }
             }
         }
 
+        /*
+         * Пустых клеток больше нет.
+         * Значит найдено полноценное решение.
+         */
+
         if (
-            best === -1
+            bestIndex === -1
         ) {
             solutions++;
             return;
@@ -2028,49 +2266,59 @@ function countSolutions(
 
         const row =
             Math.floor(
-                best / 9
+                bestIndex / 9
             );
 
         const col =
-            best % 9;
+            bestIndex % 9;
 
         const box =
-            boxIndex(
-                row,
-                col
-            );
+            getBoxIndex(row, col);
+
+        /*
+         * Перебираем допустимые цифры.
+         */
 
         for (
-            const value of DIGITS
+            let value = 1;
+            value <= 9;
+            value++
         ) {
             const bit =
                 1 << value;
 
             if (
-                !(mask & bit)
+                (bestMask & bit) === 0
             ) {
                 continue;
             }
 
-            work[best] =
+            working[bestIndex] =
                 value;
 
-            rows[row] |= bit;
-            cols[col] |= bit;
-            boxes[box] |= bit;
+            rowMask[row] |= bit;
+            columnMask[col] |= bit;
+            boxMask[box] |= bit;
 
             search();
 
-            work[best] =
-                0;
+            /*
+             * Откатываем состояние.
+             */
 
-            rows[row] &= ~bit;
-            cols[col] &= ~bit;
-            boxes[box] &= ~bit;
+            working[bestIndex] = 0;
+
+            rowMask[row] &= ~bit;
+            columnMask[col] &= ~bit;
+            boxMask[box] &= ~bit;
+
+            /*
+             * Второе решение уже найдено.
+             * Дальнейший перебор не нужен.
+             */
 
             if (
-                solutions >=
-                limit
+                solutions >= limit
             ) {
                 return;
             }
@@ -2082,9 +2330,289 @@ function countSolutions(
     return solutions;
 }
 
-function bitCount(
-    value
+
+/* =========================================================
+   GRID VALIDATION
+   ========================================================= */
+
+/*
+ * Проверка полностью заполненной сетки.
+ */
+
+function validateCompleteGrid(grid) {
+    if (
+        !Array.isArray(grid) ||
+        grid.length !== CELL_COUNT
+    ) {
+        return false;
+    }
+
+    /*
+     * Проверяем строки.
+     */
+
+    for (
+        let row = 0;
+        row < 9;
+        row++
+    ) {
+        const seen =
+            new Set();
+
+        for (
+            let col = 0;
+            col < 9;
+            col++
+        ) {
+            const value =
+                grid[row * 9 + col];
+
+            if (
+                value < 1 ||
+                value > 9 ||
+                seen.has(value)
+            ) {
+                return false;
+            }
+
+            seen.add(value);
+        }
+
+        if (seen.size !== 9) {
+            return false;
+        }
+    }
+
+    /*
+     * Проверяем столбцы.
+     */
+
+    for (
+        let col = 0;
+        col < 9;
+        col++
+    ) {
+        const seen =
+            new Set();
+
+        for (
+            let row = 0;
+            row < 9;
+            row++
+        ) {
+            const value =
+                grid[row * 9 + col];
+
+            if (
+                value < 1 ||
+                value > 9 ||
+                seen.has(value)
+            ) {
+                return false;
+            }
+
+            seen.add(value);
+        }
+
+        if (seen.size !== 9) {
+            return false;
+        }
+    }
+
+    /*
+     * Проверяем каждый блок 3x3.
+     */
+
+    for (
+        let boxRow = 0;
+        boxRow < 3;
+        boxRow++
+    ) {
+        for (
+            let boxCol = 0;
+            boxCol < 3;
+            boxCol++
+        ) {
+            const seen =
+                new Set();
+
+            for (
+                let row = 0;
+                row < 3;
+                row++
+            ) {
+                for (
+                    let col = 0;
+                    col < 3;
+                    col++
+                ) {
+                    const realRow =
+                        boxRow * 3 +
+                        row;
+
+                    const realCol =
+                        boxCol * 3 +
+                        col;
+
+                    const value =
+                        grid[
+                            realRow * 9 +
+                            realCol
+                        ];
+
+                    if (
+                        value < 1 ||
+                        value > 9 ||
+                        seen.has(value)
+                    ) {
+                        return false;
+                    }
+
+                    seen.add(value);
+                }
+            }
+
+            if (
+                seen.size !== 9
+            ) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+
+/*
+ * Проверяем задачу и ее исходное решение.
+ *
+ * Это дополнительный уровень защиты.
+ */
+
+function validatePuzzle(
+    puzzle,
+    solution
 ) {
+    if (
+        !validateCompleteGrid(
+            solution
+        )
+    ) {
+        return false;
+    }
+
+    if (
+        !Array.isArray(puzzle) ||
+        puzzle.length !== CELL_COUNT
+    ) {
+        return false;
+    }
+
+    for (
+        let index = 0;
+        index < CELL_COUNT;
+        index++
+    ) {
+        const puzzleValue =
+            puzzle[index];
+
+        const solutionValue =
+            solution[index];
+
+        /*
+         * 0 = пустая клетка.
+         */
+
+        if (
+            !Number.isInteger(
+                puzzleValue
+            ) ||
+            puzzleValue < 0 ||
+            puzzleValue > 9
+        ) {
+            return false;
+        }
+
+        /*
+         * Исходное число обязательно
+         * должно совпадать с решением.
+         */
+
+        if (
+            puzzleValue !== 0 &&
+            puzzleValue !== solutionValue
+        ) {
+            return false;
+        }
+    }
+
+    /*
+     * Проверяем, что у задачи ровно
+     * одно решение.
+     */
+
+    return (
+        countSolutions(
+            puzzle,
+            2
+        ) === 1
+    );
+}
+
+
+/*
+ * Количество исходных цифр.
+ */
+
+function countClues(grid) {
+    return grid.reduce(
+        (count, value) =>
+            count + (
+                value !== 0
+                    ? 1
+                    : 0
+            ),
+        0
+    );
+}
+
+
+/* =========================================================
+   BIT MASK HELPERS
+   ========================================================= */
+
+const ALL_DIGITS_MASK =
+    (
+        1 << 1
+    ) |
+    (
+        1 << 2
+    ) |
+    (
+        1 << 3
+    ) |
+    (
+        1 << 4
+    ) |
+    (
+        1 << 5
+    ) |
+    (
+        1 << 6
+    ) |
+    (
+        1 << 7
+    ) |
+    (
+        1 << 8
+    ) |
+    (
+        1 << 9
+    );
+
+
+function bitCount(value) {
     let count = 0;
 
     while (
@@ -2099,376 +2627,142 @@ function bitCount(
     return count;
 }
 
-function boxIndex(
+
+/* =========================================================
+   RANDOMIZATION
+   ========================================================= */
+
+function shuffleArray(array) {
+    const result =
+        [...array];
+
+    /*
+     * Fisher-Yates.
+     */
+
+    for (
+        let index =
+            result.length - 1;
+        index > 0;
+        index--
+    ) {
+        const randomIndex =
+            Math.floor(
+                Math.random() *
+                (index + 1)
+            );
+
+        const temporary =
+            result[index];
+
+        result[index] =
+            result[randomIndex];
+
+        result[randomIndex] =
+            temporary;
+    }
+
+    return result;
+}
+
+
+/* =========================================================
+   GRID HELPERS
+   ========================================================= */
+
+function getBoxIndex(
     row,
     col
 ) {
     return (
-        Math.floor(
-            row / 3
-        ) * 3 +
-        Math.floor(
-            col / 3
-        )
+        Math.floor(row / 3) * 3 +
+        Math.floor(col / 3)
     );
 }
 
 
 /* =========================================================
-   GRID VALIDATION
+   EMPTY NOTES
    ========================================================= */
 
-function validGrid(
-    grid
-) {
-    return (
-        Array.isArray(
-            grid
-        ) &&
-        grid.length === 81 &&
-        grid.every(
-            Number.isInteger
-        )
+function createEmptyNotes() {
+    return Array.from(
+        {
+            length: CELL_COUNT
+        },
+        () => []
     );
-}
-
-function validateCompleteGrid(
-    grid
-) {
-    if (
-        !validGrid(
-            grid
-        )
-    ) {
-        return false;
-    }
-
-    /*
-     * Строки.
-     */
-
-    for (
-        let row = 0;
-        row < 9;
-        row++
-    ) {
-        const seen =
-            new Set();
-
-        for (
-            let col = 0;
-            col < 9;
-            col++
-        ) {
-            const value =
-                grid[
-                    row * 9 +
-                    col
-                ];
-
-            if (
-                value < 1 ||
-                value > 9 ||
-                seen.has(
-                    value
-                )
-            ) {
-                return false;
-            }
-
-            seen.add(
-                value
-            );
-        }
-    }
-
-    /*
-     * Столбцы.
-     */
-
-    for (
-        let col = 0;
-        col < 9;
-        col++
-    ) {
-        const seen =
-            new Set();
-
-        for (
-            let row = 0;
-            row < 9;
-            row++
-        ) {
-            const value =
-                grid[
-                    row * 9 +
-                    col
-                ];
-
-            if (
-                value < 1 ||
-                value > 9 ||
-                seen.has(
-                    value
-                )
-            ) {
-                return false;
-            }
-
-            seen.add(
-                value
-            );
-        }
-    }
-
-    /*
-     * Блоки 3x3.
-     */
-
-    for (
-        let boxRow = 0;
-        boxRow < 3;
-        boxRow++
-    ) {
-        for (
-            let boxCol = 0;
-            boxCol < 3;
-            boxCol++
-        ) {
-            const seen =
-                new Set();
-
-            for (
-                let row = 0;
-                row < 3;
-                row++
-            ) {
-                for (
-                    let col = 0;
-                    col < 3;
-                    col++
-                ) {
-                    const index =
-                        (
-                            boxRow * 3 +
-                            row
-                        ) * 9 +
-                        (
-                            boxCol * 3 +
-                            col
-                        );
-
-                    const value =
-                        grid[index];
-
-                    if (
-                        value < 1 ||
-                        value > 9 ||
-                        seen.has(
-                            value
-                        )
-                    ) {
-                        return false;
-                    }
-
-                    seen.add(
-                        value
-                    );
-                }
-            }
-        }
-    }
-
-    return true;
-}
-
-function validatePartialGrid(
-    grid
-) {
-    if (
-        !validGrid(
-            grid
-        )
-    ) {
-        return false;
-    }
-
-    /*
-     * Строки.
-     */
-
-    for (
-        let row = 0;
-        row < 9;
-        row++
-    ) {
-        const seen =
-            new Set();
-
-        for (
-            let col = 0;
-            col < 9;
-            col++
-        ) {
-            const value =
-                grid[
-                    row * 9 +
-                    col
-                ];
-
-            if (
-                value === 0
-            ) {
-                continue;
-            }
-
-            if (
-                value < 1 ||
-                value > 9 ||
-                seen.has(
-                    value
-                )
-            ) {
-                return false;
-            }
-
-            seen.add(
-                value
-            );
-        }
-    }
-
-    /*
-     * Столбцы.
-     */
-
-    for (
-        let col = 0;
-        col < 9;
-        col++
-    ) {
-        const seen =
-            new Set();
-
-        for (
-            let row = 0;
-            row < 9;
-            row++
-        ) {
-            const value =
-                grid[
-                    row * 9 +
-                    col
-                ];
-
-            if (
-                value === 0
-            ) {
-                continue;
-            }
-
-            if (
-                value < 1 ||
-                value > 9 ||
-                seen.has(
-                    value
-                )
-            ) {
-                return false;
-            }
-
-            seen.add(
-                value
-            );
-        }
-    }
-
-    /*
-     * Блоки 3x3.
-     */
-
-    for (
-        let boxRow = 0;
-        boxRow < 3;
-        boxRow++
-    ) {
-        for (
-            let boxCol = 0;
-            boxCol < 3;
-            boxCol++
-        ) {
-            const seen =
-                new Set();
-
-            for (
-                let row = 0;
-                row < 3;
-                row++
-            ) {
-                for (
-                    let col = 0;
-                    col < 3;
-                    col++
-                ) {
-                    const index =
-                        (
-                            boxRow * 3 +
-                            row
-                        ) * 9 +
-                        (
-                            boxCol * 3 +
-                            col
-                        );
-
-                    const value =
-                        grid[index];
-
-                    if (
-                        value === 0
-                    ) {
-                        continue;
-                    }
-
-                    if (
-                        value < 1 ||
-                        value > 9 ||
-                        seen.has(
-                            value
-                        )
-                    ) {
-                        return false;
-                    }
-
-                    seen.add(
-                        value
-                    );
-                }
-            }
-        }
-    }
-
-    return true;
 }
 
 
 /* =========================================================
-   GAME STATE
+   RANDOM GAME CREATION SAFETY CHECK
+   ========================================================= */
+
+/*
+ * При создании нового поля несколько раз
+ * проверяем базовые инварианты.
+ *
+ * Если одна из проверок провалена,
+ * поле отбрасывается и создается новое.
+ */
+
+function generateVerifiedPuzzle(
+    difficulty
+) {
+    for (
+        let attempt = 0;
+        attempt < 20;
+        attempt++
+    ) {
+        const generated =
+            generatePuzzle(
+                difficulty
+            );
+
+        if (
+            validateCompleteGrid(
+                generated.solution
+            ) &&
+            validatePuzzle(
+                generated.puzzle,
+                generated.solution
+            )
+        ) {
+            return generated;
+        }
+    }
+
+    throw new Error(
+        "Не удалось получить проверенное поле после нескольких попыток."
+    );
+}
+
+
+/* =========================================================
+   GAME INITIALIZATION
    ========================================================= */
 
 function initializeNewGame(
     difficulty = "easy"
 ) {
     if (
-        !DIFFICULTIES[
-            difficulty
-        ]
+        !DIFFICULTIES[difficulty]
     ) {
-        difficulty =
-            "easy";
+        difficulty = "easy";
     }
 
+    /*
+     * Полностью удаляем старую игровую
+     * структуру из состояния.
+     *
+     * Это особенно важно после Game Over:
+     * новая партия НЕ может унаследовать
+     * заполненные клетки старой.
+     */
+
     const generated =
-        generatePuzzle(
+        generateVerifiedPuzzle(
             difficulty
         );
 
@@ -2522,28 +2816,38 @@ function initializeNewGame(
             )
     };
 
-    deleteCurrentGame();
+    /*
+     * Старое сохранение удаляется
+     * и сразу заменяется состоянием
+     * новой партии.
+     */
 
-    closeAllLayers();
+    deleteCurrentGame();
 
     saveCurrentGame();
 
+    closeAllLayers();
+
     updateDifficultyLabel();
-    updateLives();
+
     updateNotesButton();
+
+    updateLives();
+
     updateTimer();
+
     renderBoard();
 }
 
 
 /* =========================================================
-   SAVED GAME
+   SAVED GAME VALIDATION
    ========================================================= */
 
 function loadSavedGame() {
     const saved =
-        safeGet(
-            STORAGE.GAME
+        safeStorageGet(
+            STORAGE_KEYS.GAME
         );
 
     if (
@@ -2551,7 +2855,15 @@ function loadSavedGame() {
             saved
         )
     ) {
+        /*
+         * Если нашли старое/битое
+         * сохранение, оно удаляется.
+         *
+         * В игру оно никогда не попадает.
+         */
+
         deleteCurrentGame();
+
         return false;
     }
 
@@ -2581,15 +2893,16 @@ function loadSavedGame() {
 
     state.errors =
         clamp(
-            saved.errors,
+            Number(saved.errors),
             0,
             3
         );
 
     state.elapsedMs =
-        Number(
-            saved.elapsedMs
-        ) || 0;
+        Math.max(
+            0,
+            Number(saved.elapsedMs) || 0
+        );
 
     state.isPaused =
         Boolean(
@@ -2597,38 +2910,79 @@ function loadSavedGame() {
         );
 
     state.isGameOver =
-        false;
+        Boolean(
+            saved.isGameOver
+        );
 
     state.isWon =
-        false;
+        Boolean(
+            saved.isWon
+        );
 
     state.notesMode =
         Boolean(
             saved.notesMode
         );
 
-    state.startedAt =
+    /*
+     * Если старая партия уже закончена,
+     * она не должна восстанавливаться
+     * как активная игра.
+     */
+
+    if (
+        state.isGameOver ||
+        state.isWon
+    ) {
+        /*
+         * Завершенная партия больше
+         * не нужна для продолжения.
+         */
+
+        deleteCurrentGame();
+
+        return false;
+    }
+
+    /*
+     * При возвращении в игру отсчитываем
+     * время от текущего момента.
+     *
+     * Предыдущее время уже лежит
+     * в elapsedMs.
+     */
+
+    if (
         state.isPaused
-            ? null
-            : Date.now();
+    ) {
+        state.startedAt =
+            null;
+    } else {
+        state.startedAt =
+            Date.now();
+    }
 
     return true;
 }
+
+
+/* =========================================================
+   SAVED GAME VALIDATION DETAILS
+   ========================================================= */
 
 function isValidSavedGame(
     saved
 ) {
     if (
         !saved ||
-        typeof saved !==
-            "object"
+        typeof saved !== "object"
     ) {
         return false;
     }
 
     if (
         saved.version !==
-        VERSION
+        SAVE_VERSION
     ) {
         return false;
     }
@@ -2655,6 +3009,11 @@ function isValidSavedGame(
         return false;
     }
 
+    /*
+     * Решение обязательно должно быть
+     * полноценным и корректным.
+     */
+
     if (
         !validateCompleteGrid(
             saved.solution
@@ -2663,64 +3022,13 @@ function isValidSavedGame(
         return false;
     }
 
-    if (
-        !validatePartialGrid(
-            saved.puzzle
-        )
-    ) {
-        return false;
-    }
-
-    if (
-        !validatePartialGrid(
-            saved.board
-        )
-    ) {
-        return false;
-    }
-
-    if (
-        countClues(
-            saved.puzzle
-        ) !==
-        DIFFICULTIES[
-            saved.difficulty
-        ].clues
-    ) {
-        return false;
-    }
-
-    if (
-        countSolutions(
-            saved.puzzle,
-            2
-        ) !== 1
-    ) {
-        return false;
-    }
-
-    if (
-        !Number.isFinite(
-            saved.elapsedMs
-        ) ||
-        saved.elapsedMs < 0
-    ) {
-        return false;
-    }
-
-    if (
-        !Number.isFinite(
-            saved.errors
-        ) ||
-        saved.errors < 0 ||
-        saved.errors > 3
-    ) {
-        return false;
-    }
+    /*
+     * Проверяем исходные цифры.
+     */
 
     for (
         let index = 0;
-        index < 81;
+        index < CELL_COUNT;
         index++
     ) {
         const puzzleValue =
@@ -2731,6 +3039,31 @@ function isValidSavedGame(
 
         const boardValue =
             saved.board[index];
+
+        if (
+            puzzleValue < 0 ||
+            puzzleValue > 9
+        ) {
+            return false;
+        }
+
+        if (
+            boardValue < 0 ||
+            boardValue > 9
+        ) {
+            return false;
+        }
+
+        if (
+            solutionValue < 1 ||
+            solutionValue > 9
+        ) {
+            return false;
+        }
+
+        /*
+         * Исходные цифры нельзя изменить.
+         */
 
         if (
             puzzleValue !== 0 &&
@@ -2748,6 +3081,12 @@ function isValidSavedGame(
             return false;
         }
 
+        /*
+         * Пользовательское поле тоже
+         * не может содержать число,
+         * отличное от решения.
+         */
+
         if (
             boardValue !== 0 &&
             boardValue !==
@@ -2757,81 +3096,242 @@ function isValidSavedGame(
         }
     }
 
+    /*
+     * Ключевая проверка:
+     * текущее поле не должно содержать
+     * повторяющиеся цифры в любой
+     * строке, колонке или блоке.
+     */
+
+    if (
+        !validatePartialGrid(
+            saved.board
+        )
+    ) {
+        return false;
+    }
+
+    /*
+     * Проверяем сам puzzle.
+     */
+
+    if (
+        !validatePartialGrid(
+            saved.puzzle
+        )
+    ) {
+        return false;
+    }
+
+    /*
+     * И исходная задача должна иметь
+     * единственное решение.
+     */
+
+    if (
+        countSolutions(
+            saved.puzzle,
+            2
+        ) !== 1
+    ) {
+        return false;
+    }
+
     return true;
 }
 
-function saveCurrentGame() {
+
+/* =========================================================
+   PARTIAL GRID VALIDATION
+   ========================================================= */
+
+/*
+ * Проверяет сетку, в которой могут быть нули.
+ *
+ * Это именно та проверка, которой не хватало
+ * в предыдущей реализации.
+ *
+ * Например:
+ *
+ * 0 6 0
+ * 0 6 0
+ *
+ * будет отклонено,
+ * потому что в одном блоке/столбце
+ * присутствует повторная 6.
+ */
+
+function validatePartialGrid(
+    grid
+) {
     if (
-        !state.puzzle.length
+        !validGrid(grid)
     ) {
-        return;
+        return false;
     }
 
-    safeSet(
-        STORAGE.GAME,
-        {
-            version:
-                VERSION,
+    /*
+     * Проверяем строки.
+     */
 
-            difficulty:
-                state.difficulty,
+    for (
+        let row = 0;
+        row < 9;
+        row++
+    ) {
+        const seen =
+            new Set();
 
-            puzzle:
-                [...state.puzzle],
+        for (
+            let col = 0;
+            col < 9;
+            col++
+        ) {
+            const value =
+                grid[
+                    row * 9 + col
+                ];
 
-            solution:
-                [...state.solution],
+            if (value === 0) {
+                continue;
+            }
 
-            board:
-                [...state.board],
+            if (
+                seen.has(value)
+            ) {
+                return false;
+            }
 
-            notes:
-                state.notes.map(
-                    note => [...note]
-                ),
-
-            selectedIndex:
-                state.selectedIndex,
-
-            errors:
-                state.errors,
-
-            elapsedMs:
-                getElapsedMs(),
-
-            isPaused:
-                state.isPaused,
-
-            notesMode:
-                state.notesMode
+            seen.add(value);
         }
+    }
+
+    /*
+     * Проверяем столбцы.
+     */
+
+    for (
+        let col = 0;
+        col < 9;
+        col++
+    ) {
+        const seen =
+            new Set();
+
+        for (
+            let row = 0;
+            row < 9;
+            row++
+        ) {
+            const value =
+                grid[
+                    row * 9 + col
+                ];
+
+            if (value === 0) {
+                continue;
+            }
+
+            if (
+                seen.has(value)
+            ) {
+                return false;
+            }
+
+            seen.add(value);
+        }
+    }
+
+    /*
+     * Проверяем блоки 3x3.
+     */
+
+    for (
+        let boxRow = 0;
+        boxRow < 3;
+        boxRow++
+    ) {
+        for (
+            let boxCol = 0;
+            boxCol < 3;
+            boxCol++
+        ) {
+            const seen =
+                new Set();
+
+            for (
+                let row = 0;
+                row < 3;
+                row++
+            ) {
+                for (
+                    let col = 0;
+                    col < 3;
+                    col++
+                ) {
+                    const index =
+                        (
+                            boxRow * 3 +
+                            row
+                        ) * 9 +
+                        (
+                            boxCol * 3 +
+                            col
+                        );
+
+                    const value =
+                        grid[index];
+
+                    if (
+                        value === 0
+                    ) {
+                        continue;
+                    }
+
+                    if (
+                        seen.has(value)
+                    ) {
+                        return false;
+                    }
+
+                    seen.add(value);
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+
+function validGrid(grid) {
+    return (
+        Array.isArray(grid) &&
+        grid.length === CELL_COUNT &&
+        grid.every(
+            value =>
+                Number.isInteger(value)
+        )
     );
 }
 
-function deleteCurrentGame() {
-    try {
-        localStorage.removeItem(
-            STORAGE.GAME
-        );
-    } catch {
-        /* Storage unavailable. */
-    }
-}
+
+/* =========================================================
+   NORMALIZE NOTES
+   ========================================================= */
 
 function normalizeNotes(
     notes
 ) {
     if (
-        !Array.isArray(
-            notes
-        )
+        !Array.isArray(notes)
     ) {
         return createEmptyNotes();
     }
 
     return Array.from(
         {
-            length:81
+            length: CELL_COUNT
         },
         (_, index) => {
             const source =
@@ -2844,16 +3344,16 @@ function normalizeNotes(
             return [
                 ...new Set(
                     source.filter(
-                        number =>
+                        value =>
                             Number.isInteger(
-                                number
+                                value
                             ) &&
-                            number >= 1 &&
-                            number <= 9
+                            value >= 1 &&
+                            value <= 9
                     )
                 )
             ].sort(
-                (a,b) => a - b
+                (a, b) => a - b
             );
         }
     );
@@ -2861,39 +3361,160 @@ function normalizeNotes(
 
 
 /* =========================================================
+   STORAGE
+   ========================================================= */
+
+function saveCurrentGame() {
+    if (
+        !state.puzzle.length ||
+        !state.solution.length
+    ) {
+        return;
+    }
+
+    const data = {
+        version:
+            SAVE_VERSION,
+
+        difficulty:
+            state.difficulty,
+
+        puzzle:
+            [...state.puzzle],
+
+        solution:
+            [...state.solution],
+
+        board:
+            [...state.board],
+
+        notes:
+            state.notes.map(
+                notes =>
+                    [...notes]
+            ),
+
+        selectedIndex:
+            state.selectedIndex,
+
+        errors:
+            state.errors,
+
+        elapsedMs:
+            getElapsedMs(),
+
+        isPaused:
+            state.isPaused,
+
+        isGameOver:
+            state.isGameOver,
+
+        isWon:
+            state.isWon,
+
+        notesMode:
+            state.notesMode
+    };
+
+    safeStorageSet(
+        STORAGE_KEYS.GAME,
+        data
+    );
+}
+
+
+function deleteCurrentGame() {
+    try {
+        localStorage.removeItem(
+            STORAGE_KEYS.GAME
+        );
+    } catch {
+        /*
+         * localStorage может быть
+         * недоступен в приватном режиме
+         * или из-за политики браузера.
+         */
+    }
+}
+
+
+/* =========================================================
+   STORAGE HELPERS
+   ========================================================= */
+
+function safeStorageGet(
+    key
+) {
+    try {
+        const raw =
+            localStorage.getItem(
+                key
+            );
+
+        if (!raw) {
+            return null;
+        }
+
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
+
+
+function safeStorageSet(
+    key,
+    value
+) {
+    try {
+        localStorage.setItem(
+            key,
+            JSON.stringify(value)
+        );
+
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+
+/* =========================================================
+   END OF PART 2
+   ========================================================= */
+   /* =========================================================
    BOARD
    ========================================================= */
 
 function createBoard() {
-    elements.sudokuBoard.innerHTML =
-        "";
+    elements.sudokuBoard.innerHTML = "";
 
     for (
         let index = 0;
-        index < 81;
+        index < CELL_COUNT;
         index++
     ) {
         const cell =
-            document.createElement(
-                "button"
-            );
+            document.createElement("button");
 
-        cell.type =
-            "button";
+        cell.type = "button";
 
-        cell.className =
-            "cell";
+        cell.className = "cell";
 
         cell.dataset.index =
-            index;
+            String(index);
 
         cell.setAttribute(
             "role",
             "gridcell"
         );
 
-        cell.tabIndex =
-            0;
+        cell.setAttribute(
+            "aria-selected",
+            "false"
+        );
+
+        cell.tabIndex = 0;
 
         elements.sudokuBoard.appendChild(
             cell
@@ -2901,237 +3522,549 @@ function createBoard() {
     }
 }
 
-function renderBoard() {
-    if (
-        !elements.sudokuBoard
-    ) {
-        return;
-    }
 
-    const selected =
+/* =========================================================
+   BOARD RENDERING
+   ========================================================= */
+
+function renderBoard() {
+    const cells =
+        elements.sudokuBoard
+            .querySelectorAll(
+                ".cell"
+            );
+
+    const selectedIndex =
         state.selectedIndex;
 
     const selectedValue =
-        selected === null
-            ? 0
-            : state.board[
-                  selected
-              ];
+        selectedIndex !== null
+            ? state.board[
+                  selectedIndex
+              ]
+            : 0;
 
-    const hints =
+    const hintCells =
         getHintCells();
 
-    elements.sudokuBoard
-        .querySelectorAll(
-            ".cell"
-        )
-        .forEach(
-            cell => {
-                const index =
-                    Number(
-                        cell.dataset.index
+    cells.forEach(cell => {
+        const index =
+            Number(
+                cell.dataset.index
+            );
+
+        const value =
+            state.board[index];
+
+        const isGiven =
+            state.puzzle[index] !== 0;
+
+        const isSelected =
+            selectedIndex === index;
+
+        const isRelated =
+            selectedIndex !== null &&
+            isSameUnit(
+                index,
+                selectedIndex
+            );
+
+        const isSameNumber =
+            selectedValue !== 0 &&
+            value === selectedValue;
+
+        const staleNotes =
+            getStaleNotes(index);
+
+        /*
+         * Полностью очищаем классы.
+         */
+
+        cell.className =
+            "cell";
+
+        /*
+         * Исходная цифра.
+         */
+
+        if (isGiven) {
+            cell.classList.add(
+                "given"
+            );
+        }
+
+        /*
+         * Пользовательская цифра.
+         */
+
+        if (
+            !isGiven &&
+            value !== 0
+        ) {
+            cell.classList.add(
+                "user-filled"
+            );
+        }
+
+        /*
+         * Выбранная клетка.
+         */
+
+        if (isSelected) {
+            cell.classList.add(
+                "selected"
+            );
+        }
+
+        /*
+         * Строка + колонка + блок
+         * выбранной клетки.
+         */
+
+        if (isRelated) {
+            cell.classList.add(
+                "related"
+            );
+        }
+
+        /*
+         * Все такие же цифры.
+         */
+
+        if (
+            isSameNumber
+        ) {
+            cell.classList.add(
+                "same-number"
+            );
+        }
+
+        /*
+         * Точка smart hint.
+         */
+
+        if (
+            hintCells.has(index) &&
+            value === 0
+        ) {
+            cell.classList.add(
+                "hint-cell"
+            );
+        }
+
+        /*
+         * Строим содержимое клетки.
+         */
+
+        cell.innerHTML = "";
+
+        if (value !== 0) {
+            const number =
+                document.createElement(
+                    "span"
+                );
+
+            number.className =
+                "cell-number";
+
+            number.textContent =
+                String(value);
+
+            cell.appendChild(
+                number
+            );
+        } else {
+            const notesGrid =
+                document.createElement(
+                    "div"
+                );
+
+            notesGrid.className =
+                "notes-grid";
+
+            for (
+                let number = 1;
+                number <= 9;
+                number++
+            ) {
+                const note =
+                    document.createElement(
+                        "span"
                     );
 
-                const value =
-                    state.board[index];
-
-                const given =
-                    state.puzzle[index] !==
-                    0;
-
-                cell.className =
-                    "cell";
-
-                if (given) {
-                    cell.classList.add(
-                        "given"
-                    );
-                } else if (
-                    value
-                ) {
-                    cell.classList.add(
-                        "user-filled"
-                    );
-                }
+                note.className =
+                    "note";
 
                 if (
-                    index === selected
+                    state.notes[index]
+                        .includes(number)
                 ) {
-                    cell.classList.add(
-                        "selected"
-                    );
-                } else if (
-                    selected !== null &&
-                    sameUnit(
-                        index,
-                        selected
-                    )
-                ) {
-                    cell.classList.add(
-                        "related"
-                    );
-                }
+                    note.textContent =
+                        String(number);
 
-                if (
-                    selectedValue &&
-                    value ===
-                        selectedValue
-                ) {
-                    cell.classList.add(
-                        "same-number"
-                    );
-                }
-
-                if (
-                    hints.has(index) &&
-                    value === 0
-                ) {
-                    cell.classList.add(
-                        "hint-cell"
-                    );
-                }
-
-                cell.innerHTML =
-                    "";
-
-                if (
-                    value
-                ) {
-                    const number =
-                        document.createElement(
-                            "span"
-                        );
-
-                    number.className =
-                        "cell-number";
-
-                    number.textContent =
-                        value;
-
-                    cell.appendChild(
-                        number
-                    );
-                } else {
-                    const notesGrid =
-                        document.createElement(
-                            "div"
-                        );
-
-                    notesGrid.className =
-                        "notes-grid";
-
-                    const stale =
-                        getStaleNotes(
-                            index
-                        );
-
-                    for (
-                        const number of DIGITS
+                    if (
+                        staleNotes.has(
+                            number
+                        )
                     ) {
-                        const note =
-                            document.createElement(
-                                "span"
-                            );
-
-                        note.className =
-                            "note";
-
-                        if (
-                            state.notes[
-                                index
-                            ].includes(
-                                number
-                            )
-                        ) {
-                            note.textContent =
-                                number;
-
-                            if (
-                                stale.has(
-                                    number
-                                )
-                            ) {
-                                note.classList.add(
-                                    "stale"
-                                );
-                            }
-                        }
-
-                        notesGrid.appendChild(
-                            note
+                        note.classList.add(
+                            "stale"
                         );
                     }
-
-                    cell.appendChild(
-                        notesGrid
-                    );
                 }
 
-                cell.setAttribute(
-                    "aria-selected",
-                    String(
-                        index ===
-                            selected
-                    )
+                notesGrid.appendChild(
+                    note
                 );
             }
+
+            cell.appendChild(
+                notesGrid
+            );
+        }
+
+        cell.setAttribute(
+            "aria-selected",
+            String(isSelected)
         );
+
+        cell.setAttribute(
+            "aria-label",
+            getCellAriaLabel(
+                index,
+                value
+            )
+        );
+    });
 
     updateNumberPad(
         selectedValue
     );
 
     updateSmartHint(
-        hints
+        hintCells
     );
 }
 
 
 /* =========================================================
-   SMART FEATURES
+   CELL ACCESSIBILITY
    ========================================================= */
 
-function sameUnit(
-    first,
-    second
+function getCellAriaLabel(
+    index,
+    value
+) {
+    const row =
+        Math.floor(
+            index / 9
+        ) + 1;
+
+    const col =
+        (index % 9) + 1;
+
+    if (
+        value === 0
+    ) {
+        return `${t("title")}: ${row}, ${col}, empty`;
+    }
+
+    return `${t("title")}: ${row}, ${col}, ${value}`;
+}
+
+
+/* =========================================================
+   CELL RELATIONSHIPS
+   ========================================================= */
+
+function isSameUnit(
+    firstIndex,
+    secondIndex
 ) {
     if (
-        first === second
+        firstIndex ===
+        secondIndex
     ) {
         return true;
     }
 
-    const rowA =
+    const firstRow =
         Math.floor(
-            first / 9
+            firstIndex / 9
         );
 
-    const colA =
-        first % 9;
+    const firstCol =
+        firstIndex % 9;
 
-    const rowB =
+    const secondRow =
         Math.floor(
-            second / 9
+            secondIndex / 9
         );
 
-    const colB =
-        second % 9;
+    const secondCol =
+        secondIndex % 9;
+
+    /*
+     * Одна строка.
+     */
+
+    if (
+        firstRow === secondRow
+    ) {
+        return true;
+    }
+
+    /*
+     * Один столбец.
+     */
+
+    if (
+        firstCol === secondCol
+    ) {
+        return true;
+    }
+
+    /*
+     * Один блок 3x3.
+     */
 
     return (
-        rowA === rowB ||
-        colA === colB ||
-        boxIndex(
-            rowA,
-            colA
+        getBoxIndex(
+            firstRow,
+            firstCol
         ) ===
-        boxIndex(
-            rowB,
-            colB
+        getBoxIndex(
+            secondRow,
+            secondCol
         )
     );
 }
 
-function numberExistsInUnit(
+
+/* =========================================================
+   SMART HINT 2
+   ========================================================= */
+
+/*
+ * Если в строке, колонке или блоке
+ * осталось ровно одно пустое место,
+ * ставим туда маленькую точку.
+ */
+
+function getHintCells() {
+    const hints =
+        new Set();
+
+    if (
+        state.isWon ||
+        state.isGameOver ||
+        state.isPaused
+    ) {
+        return hints;
+    }
+
+    /*
+     * Строки.
+     */
+
+    for (
+        let row = 0;
+        row < 9;
+        row++
+    ) {
+        const empty = [];
+
+        for (
+            let col = 0;
+            col < 9;
+            col++
+        ) {
+            const index =
+                row * 9 + col;
+
+            if (
+                state.board[index] === 0
+            ) {
+                empty.push(index);
+            }
+        }
+
+        if (
+            empty.length === 1
+        ) {
+            hints.add(
+                empty[0]
+            );
+        }
+    }
+
+    /*
+     * Столбцы.
+     */
+
+    for (
+        let col = 0;
+        col < 9;
+        col++
+    ) {
+        const empty = [];
+
+        for (
+            let row = 0;
+            row < 9;
+            row++
+        ) {
+            const index =
+                row * 9 + col;
+
+            if (
+                state.board[index] === 0
+            ) {
+                empty.push(index);
+            }
+        }
+
+        if (
+            empty.length === 1
+        ) {
+            hints.add(
+                empty[0]
+            );
+        }
+    }
+
+    /*
+     * Блоки 3x3.
+     */
+
+    for (
+        let boxRow = 0;
+        boxRow < 3;
+        boxRow++
+    ) {
+        for (
+            let boxCol = 0;
+            boxCol < 3;
+            boxCol++
+        ) {
+            const empty = [];
+
+            for (
+                let row = 0;
+                row < 3;
+                row++
+            ) {
+                for (
+                    let col = 0;
+                    col < 3;
+                    col++
+                ) {
+                    const realRow =
+                        boxRow * 3 +
+                        row;
+
+                    const realCol =
+                        boxCol * 3 +
+                        col;
+
+                    const index =
+                        realRow * 9 +
+                        realCol;
+
+                    if (
+                        state.board[index] ===
+                        0
+                    ) {
+                        empty.push(
+                            index
+                        );
+                    }
+                }
+            }
+
+            if (
+                empty.length === 1
+            ) {
+                hints.add(
+                    empty[0]
+                );
+            }
+        }
+    }
+
+    return hints;
+}
+
+
+function updateSmartHint(
+    hints
+) {
+    if (
+        hints.size === 0
+    ) {
+        elements.smartHint.classList.remove(
+            "visible"
+        );
+
+        elements.smartHint.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+        return;
+    }
+
+    elements.smartHintText.textContent =
+        t("smartHint");
+
+    elements.smartHint.classList.add(
+        "visible"
+    );
+
+    elements.smartHint.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+}
+
+
+/* =========================================================
+   SMART HINT 3
+   ========================================================= */
+
+/*
+ * Возвращает номера заметок,
+ * которые уже не могут быть правильными
+ * в данной клетке.
+ */
+
+function getStaleNotes(
+    index
+) {
+    const result =
+        new Set();
+
+    const notes =
+        state.notes[index] || [];
+
+    for (
+        const number of notes
+    ) {
+        if (
+            existsInUnit(
+                index,
+                number
+            )
+        ) {
+            result.add(number);
+        }
+    }
+
+    return result;
+}
+
+
+function existsInUnit(
     index,
     number
 ) {
@@ -3142,6 +4075,10 @@ function numberExistsInUnit(
 
     const col =
         index % 9;
+
+    /*
+     * Строка.
+     */
 
     for (
         let currentCol = 0;
@@ -3161,6 +4098,10 @@ function numberExistsInUnit(
         }
     }
 
+    /*
+     * Столбец.
+     */
+
     for (
         let currentRow = 0;
         currentRow < 9;
@@ -3179,15 +4120,15 @@ function numberExistsInUnit(
         }
     }
 
+    /*
+     * Блок 3x3.
+     */
+
     const startRow =
-        Math.floor(
-            row / 3
-        ) * 3;
+        Math.floor(row / 3) * 3;
 
     const startCol =
-        Math.floor(
-            col / 3
-        ) * 3;
+        Math.floor(col / 3) * 3;
 
     for (
         let rowOffset = 0;
@@ -3224,305 +4165,136 @@ function numberExistsInUnit(
     return false;
 }
 
-function getStaleNotes(
-    index
-) {
-    const stale =
-        new Set();
-
-    for (
-        const number of
-            state.notes[index] || []
-    ) {
-        if (
-            numberExistsInUnit(
-                index,
-                number
-            )
-        ) {
-            stale.add(
-                number
-            );
-        }
-    }
-
-    return stale;
-}
-
-function getHintCells() {
-    const hints =
-        new Set();
-
-    if (
-        state.isPaused ||
-        state.isGameOver ||
-        state.isWon
-    ) {
-        return hints;
-    }
-
-    /*
-     * Строки.
-     */
-
-    for (
-        let row = 0;
-        row < 9;
-        row++
-    ) {
-        const empty = [];
-
-        for (
-            let col = 0;
-            col < 9;
-            col++
-        ) {
-            const index =
-                row * 9 +
-                col;
-
-            if (
-                state.board[index] ===
-                0
-            ) {
-                empty.push(
-                    index
-                );
-            }
-        }
-
-        if (
-            empty.length === 1
-        ) {
-            hints.add(
-                empty[0]
-            );
-        }
-    }
-
-    /*
-     * Столбцы.
-     */
-
-    for (
-        let col = 0;
-        col < 9;
-        col++
-    ) {
-        const empty = [];
-
-        for (
-            let row = 0;
-            row < 9;
-            row++
-        ) {
-            const index =
-                row * 9 +
-                col;
-
-            if (
-                state.board[index] ===
-                0
-            ) {
-                empty.push(
-                    index
-                );
-            }
-        }
-
-        if (
-            empty.length === 1
-        ) {
-            hints.add(
-                empty[0]
-            );
-        }
-    }
-
-    /*
-     * Блоки 3x3.
-     */
-
-    for (
-        let blockRow = 0;
-        blockRow < 3;
-        blockRow++
-    ) {
-        for (
-            let blockCol = 0;
-            blockCol < 3;
-            blockCol++
-        ) {
-            const empty = [];
-
-            for (
-                let row = 0;
-                row < 3;
-                row++
-            ) {
-                for (
-                    let col = 0;
-                    col < 3;
-                    col++
-                ) {
-                    const index =
-                        (
-                            blockRow * 3 +
-                            row
-                        ) * 9 +
-                        (
-                            blockCol * 3 +
-                            col
-                        );
-
-                    if (
-                        state.board[index] ===
-                        0
-                    ) {
-                        empty.push(
-                            index
-                        );
-                    }
-                }
-            }
-
-            if (
-                empty.length === 1
-            ) {
-                hints.add(
-                    empty[0]
-                );
-            }
-        }
-    }
-
-    return hints;
-}
-
-function updateSmartHint(
-    hints
-) {
-    if (
-        !elements.smartHint
-    ) {
-        return;
-    }
-
-    const visible =
-        hints.size > 0;
-
-    elements.smartHint.classList.toggle(
-        "visible",
-        visible
-    );
-
-    elements.smartHint.setAttribute(
-        "aria-hidden",
-        String(!visible)
-    );
-
-    if (visible) {
-        elements.smartHintText.textContent =
-            t("smartHint");
-    }
-}
-
 
 /* =========================================================
    NUMBER PAD
    ========================================================= */
 
 function updateNumberPad(
-    selectedValue = 0
+    selectedValue
 ) {
-    elements.numberPad
-        .querySelectorAll(
-            ".number-button"
-        )
-        .forEach(
-            button => {
-                const number =
-                    Number(
-                        button.dataset.number
-                    );
+    const buttons =
+        elements.numberPad
+            .querySelectorAll(
+                ".number-button"
+            );
 
-                const count =
-                    countBoardNumber(
-                        number
-                    );
-
-                const remaining =
-                    Math.max(
-                        0,
-                        9 - count
-                    );
-
-                button.classList.toggle(
-                    "active-number",
-                    selectedValue ===
-                        number
+    buttons.forEach(
+        button => {
+            const number =
+                Number(
+                    button.dataset.number
                 );
 
-                button.classList.toggle(
-                    "disabled-number",
-                    remaining ===
-                        0
+            const count =
+                countBoardNumber(
+                    number
                 );
 
-                let counter =
-                    button.querySelector(
-                        ".number-remaining"
+            const remaining =
+                Math.max(
+                    0,
+                    9 - count
+                );
+
+            button.classList.toggle(
+                "active-number",
+                selectedValue === number
+            );
+
+            button.classList.toggle(
+                "disabled-number",
+                remaining === 0
+            );
+
+            let counter =
+                button.querySelector(
+                    ".number-remaining"
+                );
+
+            if (!counter) {
+                counter =
+                    document.createElement(
+                        "span"
                     );
 
-                if (!counter) {
-                    counter =
-                        document.createElement(
-                            "span"
-                        );
+                counter.className =
+                    "number-remaining";
 
-                    counter.className =
-                        "number-remaining";
-
-                    button.appendChild(
-                        counter
-                    );
-                }
-
-                counter.textContent =
-                    remaining;
-
-                button.setAttribute(
-                    "aria-label",
-                    `${number}, ${remaining}`
+                button.appendChild(
+                    counter
                 );
             }
-        );
+
+            counter.textContent =
+                String(
+                    remaining
+                );
+
+            counter.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+        }
+    );
 }
+    const buttons =
+        elements.numberPad
+            .querySelectorAll(
+                ".number-button"
+            );
+
+    buttons.forEach(
+        button => {
+            const number =
+                Number(
+                    button.dataset.number
+                );
+
+            button.classList.toggle(
+                "active-number",
+                selectedValue ===
+                    number
+            );
+
+            const count =
+                countBoardNumber(
+                    number
+                );
+
+            button.classList.toggle(
+                "disabled-number",
+                count >= 9
+            );
+        }
+    );
+
+
 
 function countBoardNumber(
     number
 ) {
-    return state.board.reduce(
-        (
-            count,
-            value
-        ) =>
-            count +
-            (
-                value === number
-                    ? 1
-                    : 0
-            ),
-        0
-    );
+    let count = 0;
+
+    for (
+        const value of state.board
+    ) {
+        if (
+            value === number
+        ) {
+            count++;
+        }
+    }
+
+    return count;
 }
 
 
 /* =========================================================
-   INPUT
+   CELL INPUT
    ========================================================= */
 
-function selectCell(
+function handleCellSelection(
     index
 ) {
     if (
@@ -3534,11 +4306,9 @@ function selectCell(
     }
 
     if (
-        !Number.isInteger(
-            index
-        ) ||
+        !Number.isInteger(index) ||
         index < 0 ||
-        index > 80
+        index >= CELL_COUNT
     ) {
         return;
     }
@@ -3547,9 +4317,14 @@ function selectCell(
         index;
 
     renderBoard();
+
+    focusCell(
+        index
+    );
 }
 
-function inputNumber(
+
+function handleNumberInput(
     number
 ) {
     if (
@@ -3561,9 +4336,7 @@ function inputNumber(
     }
 
     if (
-        !Number.isInteger(
-            number
-        ) ||
+        !Number.isInteger(number) ||
         number < 1 ||
         number > 9
     ) {
@@ -3583,9 +4356,13 @@ function inputNumber(
         return;
     }
 
+    /*
+     * Нельзя изменить исходную
+     * цифру из puzzle.
+     */
+
     if (
-        state.puzzle[index] !==
-        0
+        state.puzzle[index] !== 0
     ) {
         showToast(
             t("cannotChange")
@@ -3594,7 +4371,9 @@ function inputNumber(
         return;
     }
 
-    ensureAudioContext();
+    /*
+     * Карандашный режим.
+     */
 
     if (
         state.notesMode
@@ -3603,29 +4382,56 @@ function inputNumber(
             index,
             number
         );
-    } else {
-        placeNumber(
-            index,
-            number
-        );
+
+        return;
     }
+
+    /*
+     * Обычный ввод.
+     */
+
+    placeNumber(
+        index,
+        number
+    );
 }
+
+
+/* =========================================================
+   NUMBER PLACEMENT
+   ========================================================= */
 
 function placeNumber(
     index,
     number
 ) {
     /*
-     * Повтор в строке / колонке /
-     * блоке невозможен.
+     * Дополнительная защита:
+     *
+     * даже если в будущем изменится
+     * генератор, игра не даст создать
+     * повторяющуюся цифру.
      */
 
     if (
-        numberExistsInUnit(
+        existsInUnit(
             index,
             number
         )
     ) {
+        /*
+         * Если это просто текущее
+         * значение выбранной клетки,
+         * оно не должно считаться
+         * конфликтом само с собой.
+         *
+         * Поскольку перед этим клетка
+         * проверена как пустая,
+         * здесь любой найденный number
+         * действительно находится
+         * в другой клетке.
+         */
+
         registerMistake(
             index
         );
@@ -3634,66 +4440,83 @@ function placeNumber(
     }
 
     /*
-     * Проверяем настоящее решение.
+     * Верная цифра.
      */
 
     if (
-        state.solution[index] !==
+        state.solution[index] ===
         number
     ) {
-        registerMistake(
-            index
+        state.board[index] =
+            number;
+
+        /*
+         * После постановки настоящего
+         * числа собственные заметки
+         * данной клетки больше не нужны.
+         */
+
+        state.notes[index] = [];
+
+        /*
+         * Ненужные заметки в соседних
+         * клетках НЕ удаляем.
+         *
+         * Именно они должны стать
+         * красными и показать игроку,
+         * что устарели.
+         */
+
+        playPlaceSound();
+
+        vibrate([12]);
+
+        flashCell(
+            index,
+            "correct-flash"
         );
+
+        saveCurrentGame();
+
+        renderBoard();
+
+        checkForWin();
 
         return;
     }
 
-    state.board[index] =
-        number;
+    /*
+     * Неверная цифра.
+     */
 
-    state.notes[index] =
-        [];
-
-    playPlaceSound();
-    vibrate([12]);
-    flashCell(
-        index,
-        "correct-flash"
+    registerMistake(
+        index
     );
-
-    renderBoard();
-    saveCurrentGame();
-
-    if (
-        isSolved()
-    ) {
-        finishWin();
-    }
 }
+
+
+/* =========================================================
+   MISTAKE
+   ========================================================= */
 
 function registerMistake(
     index
 ) {
-    state.errors =
-        clamp(
-            state.errors + 1,
-            0,
-            3
-        );
+    state.errors++;
 
     /*
-     * Ошибочная цифра НИКОГДА
-     * не записывается в поле.
+     * Ошибочную цифру специально
+     * НЕ записываем в поле.
+     *
+     * Это предотвращает появление
+     * некорректных повторов.
      */
 
-    state.board[index] =
-        0;
+    state.board[index] = 0;
 
     playErrorSound();
 
-    vibrate([
-        65
-    ]);
+    vibrate([65]);
 
     flashCell(
         index,
@@ -3702,24 +4525,28 @@ function registerMistake(
 
     updateLives();
 
+    saveCurrentGame();
+
     renderBoard();
 
     if (
         state.errors >= 3
     ) {
         finishGameOver();
-    } else {
-        saveCurrentGame();
     }
 }
+
+
+/* =========================================================
+   NOTES
+   ========================================================= */
 
 function toggleNote(
     index,
     number
 ) {
     if (
-        state.board[index] !==
-        0
+        state.board[index] !== 0
     ) {
         return;
     }
@@ -3727,38 +4554,37 @@ function toggleNote(
     const notes =
         state.notes[index];
 
-    const position =
+    const existing =
         notes.indexOf(
             number
         );
 
     if (
-        position === -1
+        existing === -1
     ) {
         notes.push(
             number
         );
+
+        notes.sort(
+            (a, b) => a - b
+        );
     } else {
         notes.splice(
-            position,
+            existing,
             1
         );
     }
 
-    notes.sort(
-        (a,b) => a - b
-    );
-
     playPlaceSound();
 
-    vibrate([
-        8
-    ]);
+    vibrate([8]);
 
     saveCurrentGame();
 
     renderBoard();
 }
+
 
 function eraseSelected() {
     if (
@@ -3779,8 +4605,7 @@ function eraseSelected() {
     }
 
     if (
-        state.puzzle[index] !==
-        0
+        state.puzzle[index] !== 0
     ) {
         showToast(
             t("cannotDelete")
@@ -3789,39 +4614,37 @@ function eraseSelected() {
         return;
     }
 
+    /*
+     * Удаляем пользовательскую
+     * цифру.
+     */
+
     if (
-        state.board[index] !==
-        0
+        state.board[index] !== 0
     ) {
-        state.board[index] =
-            0;
-    } else {
-        state.notes[index] =
-            [];
+        state.board[index] = 0;
+
+        saveCurrentGame();
+
+        renderBoard();
+
+        return;
     }
 
-    saveCurrentGame();
+    /*
+     * Если цифры уже нет,
+     * удаляем все заметки.
+     */
 
-    renderBoard();
-}
-
-function isSolved() {
-    for (
-        let index = 0;
-        index < 81;
-        index++
+    if (
+        state.notes[index].length > 0
     ) {
-        if (
-            state.board[index] !==
-            state.solution[index]
-        ) {
-            return false;
-        }
-    }
+        state.notes[index] = [];
 
-    return validateCompleteGrid(
-        state.board
-    );
+        saveCurrentGame();
+
+        renderBoard();
+    }
 }
 
 
@@ -3837,13 +4660,9 @@ function updateLives() {
             );
 
     dots.forEach(
-        (
-            dot,
-            index
-        ) => {
+        (dot, index) => {
             const lost =
-                index <
-                state.errors;
+                index < state.errors;
 
             dot.classList.toggle(
                 "active",
@@ -3857,19 +4676,1497 @@ function updateLives() {
         }
     );
 
-    elements.lives.setAttribute(
-        "aria-label",
-        `${t("errors")}: ${Math.max(
+    const remaining =
+        Math.max(
             0,
             3 - state.errors
-        )}`
+        );
+
+    elements.lives.setAttribute(
+        "aria-label",
+        `${t("errors")}: ${remaining}`
     );
+}
+
+
+/* =========================================================
+   NOTES MODE UI
+   ========================================================= */
+
+function toggleNotesMode() {
+    if (
+        state.isPaused ||
+        state.isWon ||
+        state.isGameOver
+    ) {
+        return;
+    }
+
+    state.notesMode =
+        !state.notesMode;
+
+    updateNotesButton();
+
+    saveCurrentGame();
+}
+
+
+function updateNotesButton() {
+    elements.notesButton.setAttribute(
+        "aria-pressed",
+        String(
+            state.notesMode
+        )
+    );
+}
+
+
+/* =========================================================
+   FLASH
+   ========================================================= */
+
+function flashCell(
+    index,
+    className
+) {
+    const cell =
+        elements.sudokuBoard
+            .querySelector(
+                `.cell[data-index="${index}"]`
+            );
+
+    if (!cell) {
+        return;
+    }
+
+    cell.classList.remove(
+        className
+    );
+
+    void cell.offsetWidth;
+
+    cell.classList.add(
+        className
+    );
+
+    window.setTimeout(
+        () => {
+            cell.classList.remove(
+                className
+            );
+        },
+        className === "error"
+            ? 320
+            : 340
+    );
+}
+
+
+/* =========================================================
+   DYNAMIC SETTINGS
+   ========================================================= */
+
+function injectDynamicSettings() {
+    const panelContent =
+        elements.settingsPanel
+            .querySelector(
+                ".panel-content"
+            );
+
+    if (!panelContent) {
+        return;
+    }
+
+    /*
+     * Не создаем блок повторно.
+     */
+
+    if (
+        document.getElementById(
+            "languageSettingsSection"
+        )
+    ) {
+        return;
+    }
+
+    const feedbackSection =
+        panelContent.querySelector(
+            ".settings-section:nth-of-type(2)"
+        );
+
+    const languageSection =
+        document.createElement(
+            "section"
+        );
+
+    languageSection.className =
+        "settings-section";
+
+    languageSection.id =
+        "languageSettingsSection";
+
+    languageSection.innerHTML = `
+        <h3 data-i18n="language">
+            ${t("language")}
+        </h3>
+
+        <div
+            class="language-list"
+            id="languageList"
+        ></div>
+    `;
+
+    const paletteSection =
+        document.createElement(
+            "section"
+        );
+
+    paletteSection.className =
+        "settings-section";
+
+    paletteSection.id =
+        "paletteSettingsSection";
+
+    paletteSection.innerHTML = `
+        <h3 data-i18n="boardColor">
+            ${t("boardColor")}
+        </h3>
+
+        <p
+            class="dynamic-setting-description"
+            id="paletteDescription"
+        >
+            ${t("boardColorDesc")}
+        </p>
+
+        <div
+            class="palette-grid"
+            id="paletteGrid"
+        ></div>
+    `;
+
+    if (
+        feedbackSection
+    ) {
+        panelContent.insertBefore(
+            languageSection,
+            feedbackSection
+        );
+
+        panelContent.insertBefore(
+            paletteSection,
+            feedbackSection
+        );
+    } else {
+        panelContent.appendChild(
+            languageSection
+        );
+
+        panelContent.appendChild(
+            paletteSection
+        );
+    }
+
+    renderLanguageOptions();
+    renderPaletteOptions();
+}
+
+
+/* =========================================================
+   LANGUAGE OPTIONS
+   ========================================================= */
+
+function renderLanguageOptions() {
+    const container =
+        document.getElementById(
+            "languageList"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = "";
+
+    LANGUAGES.forEach(
+        ([code, name]) => {
+            const button =
+                document.createElement(
+                    "button"
+                );
+
+            button.type = "button";
+
+            button.className =
+                "language-option";
+
+            button.dataset.language =
+                code;
+
+            button.setAttribute(
+                "aria-pressed",
+                String(
+                    state.settings.language ===
+                        code
+                )
+            );
+
+            if (
+                state.settings.language ===
+                code
+            ) {
+                button.classList.add(
+                    "active"
+                );
+            }
+
+            button.innerHTML = `
+                <span>
+                    ${escapeHTML(name)}
+                </span>
+
+                <span
+                    class="language-check"
+                    aria-hidden="true"
+                >
+                    ✓
+                </span>
+            `;
+
+            container.appendChild(
+                button
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   PALETTE OPTIONS
+   ========================================================= */
+
+function renderPaletteOptions() {
+    const container =
+        document.getElementById(
+            "paletteGrid"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = "";
+
+    Object.entries(
+        PALETTES
+    ).forEach(
+        ([key, palette]) => {
+            const button =
+                document.createElement(
+                    "button"
+                );
+
+            button.type = "button";
+
+            button.className =
+                "palette-option";
+
+            button.dataset.palette =
+                key;
+
+            button.setAttribute(
+                "aria-label",
+                getPaletteLabel(
+                    key
+                )
+            );
+
+            button.setAttribute(
+                "aria-pressed",
+                String(
+                    state.settings.palette ===
+                        key
+                )
+            );
+
+            if (
+                state.settings.palette ===
+                key
+            ) {
+                button.classList.add(
+                    "active"
+                );
+            }
+
+            const swatch =
+                document.createElement(
+                    "span"
+                );
+
+            swatch.className =
+                "palette-swatch";
+
+            swatch.style.background =
+                palette.color;
+
+            const label =
+                document.createElement(
+                    "span"
+                );
+
+            label.className =
+                "palette-label";
+
+            label.textContent =
+                getPaletteLabel(
+                    key
+                );
+
+            button.appendChild(
+                swatch
+            );
+
+            button.appendChild(
+                label
+            );
+
+            container.appendChild(
+                button
+            );
+        }
+    );
+}
+
+
+function getPaletteLabel(
+    key
+) {
+    const palette =
+        PALETTES[key];
+
+    if (!palette) {
+        return key;
+    }
+
+    return t(
+        palette.labelKey
+    );
+}
+
+
+/* =========================================================
+   LANGUAGE / INTERFACE UPDATE
+   ========================================================= */
+
+function updateLanguageUI() {
+    const language =
+        currentLanguage();
+
+    document.documentElement.lang =
+        state.settings.language;
+
+    /*
+     * Заголовок.
+     */
+
+    const title =
+        document.querySelector(
+            "title"
+        );
+
+    if (title) {
+        title.textContent =
+            language.title ||
+            "Sudoku";
+    }
+    const appTitle =
+        document.querySelector(
+            ".topbar-title h1"
+        );
+
+    if (appTitle) {
+        appTitle.textContent =
+            language.title ||
+            "Sudoku";
+    }
+    /*
+     * Сложность в шапке.
+     */
+
+    updateDifficultyLabel();
+
+    /*
+     * Верхняя информация.
+     */
+
+    const labels =
+        document.querySelectorAll(
+            ".info-label"
+        );
+
+    if (
+        labels.length >= 2
+    ) {
+        labels[0].textContent =
+            t("time");
+
+        labels[1].textContent =
+            t("errors");
+    }
+
+    /*
+     * Кнопка паузы.
+     */
+
+    const pauseText =
+        elements.pauseButton
+            .querySelector("span");
+
+    if (pauseText) {
+        pauseText.textContent =
+            t("stop");
+    }
+
+    /*
+     * Инструменты.
+     */
+
+    const toolText =
+        elements.notesButton
+            .querySelector("span");
+
+    if (toolText) {
+        toolText.textContent =
+            t("pencil");
+    }
+
+    const eraseText =
+        elements.eraseButton
+            .querySelector("span");
+
+    if (eraseText) {
+        eraseText.textContent =
+            t("erase");
+    }
+
+    const newGameText =
+        elements.newGameButton
+            .querySelector("span");
+
+    if (newGameText) {
+        newGameText.textContent =
+            t("newGame");
+    }
+
+    /*
+     * Пауза.
+     */
+
+    const resumeText =
+        elements.resumeButton;
+
+    if (resumeText) {
+        resumeText.textContent =
+            t("continue");
+    }
+
+    /*
+     * Кнопка окончания игры.
+     */
+
+    elements.gameOverNewGameButton.textContent =
+        t("newGame");
+
+    elements.winNewGameButton.textContent =
+        t("newGame");
+
+    /*
+     * Win time label.
+     */
+
+    const winTimeLabel =
+        elements.winOverlay
+            .querySelector(
+                ".win-time span"
+            );
+
+    if (winTimeLabel) {
+        winTimeLabel.textContent =
+            t("yourTime");
+    }
+
+    /*
+     * Заголовки панелей.
+     */
+
+    const panelHeaders =
+        document.querySelectorAll(
+            ".side-panel .panel-header h2"
+        );
+
+    if (
+        panelHeaders.length >= 2
+    ) {
+        panelHeaders[0].textContent =
+            t("settings");
+
+        panelHeaders[1].textContent =
+            t("stats");
+    }
+
+    /*
+     * Theme headings.
+     */
+
+    const settingsSections =
+        elements.settingsPanel
+            .querySelectorAll(
+                ".settings-section h3"
+            );
+
+    /*
+     * Первые значения относятся
+     * к theme + dynamic settings.
+     */
+
+    if (
+        settingsSections.length >= 4
+    ) {
+        settingsSections[0].textContent =
+            t("theme");
+
+        settingsSections[1].textContent =
+            t("language");
+
+        settingsSections[2].textContent =
+            t("boardColor");
+
+        settingsSections[3].textContent =
+            t("feedback");
+    }
+
+    /*
+     * Theme buttons.
+     */
+
+    const systemOption =
+        document.querySelector(
+            '[data-theme="system"]'
+        );
+
+    const lightOption =
+        document.querySelector(
+            '[data-theme="light"]'
+        );
+
+    const darkOption =
+        document.querySelector(
+            '[data-theme="dark"]'
+        );
+
+    if (
+        systemOption
+    ) {
+        const title =
+            systemOption.querySelector(
+                ".theme-option-title"
+            );
+
+        const desc =
+            systemOption.querySelector(
+                ".theme-option-description"
+            );
+
+        if (title) {
+            title.textContent =
+                t("system");
+        }
+
+        if (desc) {
+            desc.textContent =
+                t("systemDesc");
+        }
+    }
+
+    if (
+        lightOption
+    ) {
+        const title =
+            lightOption.querySelector(
+                ".theme-option-title"
+            );
+
+        const desc =
+            lightOption.querySelector(
+                ".theme-option-description"
+            );
+
+        if (title) {
+            title.textContent =
+                t("light");
+        }
+
+        if (desc) {
+            desc.textContent =
+                t("lightDesc");
+        }
+    }
+
+    if (
+        darkOption
+    ) {
+        const title =
+            darkOption.querySelector(
+                ".theme-option-title"
+            );
+
+        const desc =
+            darkOption.querySelector(
+                ".theme-option-description"
+            );
+
+        if (title) {
+            title.textContent =
+                t("dark");
+        }
+
+        if (desc) {
+            desc.textContent =
+                t("darkDesc");
+        }
+    }
+
+    /*
+     * Перерисовываем языки/палитры.
+     */
+
+    renderLanguageOptions();
+
+    renderPaletteOptions();
+
+    /*
+     * Описание палитры.
+     */
+
+    const paletteDescription =
+        document.getElementById(
+            "paletteDescription"
+        );
+
+    if (
+        paletteDescription
+    ) {
+        paletteDescription.textContent =
+            t("boardColorDesc");
+    }
+
+    /*
+     * Feedback.
+     */
+
+    const soundTitle =
+        document.querySelector(
+            "#soundToggle"
+        )?.parentElement
+            ?.querySelector(
+                ".setting-title"
+            );
+
+    const soundDescription =
+        document.querySelector(
+            "#soundToggle"
+        )?.parentElement
+            ?.querySelector(
+                ".setting-description"
+            );
+
+    if (soundTitle) {
+        soundTitle.textContent =
+            t("sound");
+    }
+
+    if (soundDescription) {
+        soundDescription.textContent =
+            t("soundDesc");
+    }
+
+    const vibrationTitle =
+        document.querySelector(
+            "#vibrationToggle"
+        )?.parentElement
+            ?.querySelector(
+                ".setting-title"
+            );
+
+    const vibrationDescription =
+        document.querySelector(
+            "#vibrationToggle"
+        )?.parentElement
+            ?.querySelector(
+                ".setting-description"
+            );
+
+    if (vibrationTitle) {
+        vibrationTitle.textContent =
+            t("vibration");
+    }
+
+    if (
+        vibrationDescription
+    ) {
+        vibrationDescription.textContent =
+            t("vibrationDesc");
+    }
+
+    /*
+     * Игра / reset saved.
+     */
+
+    const clearTitle =
+        elements.clearSavedGameButton
+            .querySelector(
+                ".setting-title"
+            );
+
+    const clearDesc =
+        elements.clearSavedGameButton
+            .querySelector(
+                ".setting-description"
+            );
+
+    if (clearTitle) {
+        clearTitle.textContent =
+            t("resetSaved");
+    }
+
+    if (clearDesc) {
+        clearDesc.textContent =
+            t("resetSavedDesc");
+    }
+
+    /*
+     * Статистика.
+     */
+
+    const totalWinsLabel =
+        elements.totalWins
+            .parentElement
+            ?.querySelector(
+                ".stat-card-label"
+            );
+
+    if (totalWinsLabel) {
+        totalWinsLabel.textContent =
+            t("wins");
+    }
+
+    const statsHeading =
+        elements.statsPanel
+            .querySelector(
+                ".stats-section h3"
+            );
+
+    if (statsHeading) {
+        statsHeading.textContent =
+            t("bestTime");
+    }
+
+    const statNames =
+        elements.statsPanel
+            .querySelectorAll(
+                ".difficulty-stat-name span"
+            );
+
+    const difficultyKeys = [
+        "easy",
+        "medium",
+        "hard",
+        "expert",
+        "extreme"
+    ];
+
+    statNames.forEach(
+        (element, index) => {
+            const key =
+                difficultyKeys[index];
+
+            if (key) {
+                element.textContent =
+                    t(key);
+            }
+        }
+    );
+
+    const resetStatsTitle =
+        elements.resetStatsButton
+            .querySelector(
+                ".setting-title"
+            );
+
+    const resetStatsDesc =
+        elements.resetStatsButton
+            .querySelector(
+                ".setting-description"
+            );
+
+    if (resetStatsTitle) {
+        resetStatsTitle.textContent =
+            t("resetStats");
+    }
+
+    if (resetStatsDesc) {
+        resetStatsDesc.textContent =
+            t("resetStatsDesc");
+    }
+
+    /*
+     * Modal новой игры.
+     */
+
+    const difficultyTitle =
+        elements.difficultyModal
+            .querySelector(
+                ".modal-header h2"
+            );
+
+    if (difficultyTitle) {
+        difficultyTitle.textContent =
+            t("newGameTitle");
+    }
+
+    elements.confirmNewGameButton.textContent =
+        t("startGame");
+
+    /*
+     * Difficulty options.
+     */
+
+    const difficultyOptions =
+        elements.difficultyList
+            .querySelectorAll(
+                ".difficulty-option"
+            );
+
+    difficultyOptions.forEach(
+        option => {
+            const key =
+                option.dataset.difficulty;
+
+            const name =
+                option.querySelector(
+                    ".difficulty-option-name"
+                );
+
+            const description =
+                option.querySelector(
+                    ".difficulty-option-description"
+                );
+
+            if (name) {
+                name.textContent =
+                    t(key);
+            }
+
+            if (description) {
+                description.textContent =
+                    DIFFICULTIES[key]
+                        ? getDifficultyDescription(
+                              key
+                          )
+                        : "";
+            }
+        }
+    );
+
+    /*
+     * Game Over modal.
+     */
+
+    const gameOverTitle =
+        elements.gameOverOverlay
+            .querySelector(
+                "h2"
+            );
+
+    const gameOverText =
+        elements.gameOverOverlay
+            .querySelector(
+                "p"
+            );
+
+    if (gameOverTitle) {
+        gameOverTitle.textContent =
+            t("gameOver");
+    }
+
+    if (gameOverText) {
+        gameOverText.textContent =
+            t("threeMistakes");
+    }
+
+    /*
+     * Win modal.
+     */
+
+    const winTitle =
+        elements.winOverlay
+            .querySelector(
+                "h2"
+            );
+
+    if (winTitle) {
+        winTitle.textContent =
+            t("solved");
+    }
+
+    /*
+     * Pause modal.
+     */
+
+    const pauseTitle =
+        elements.pauseOverlay
+            .querySelector(
+                "h2"
+            );
+
+    const pauseDescription =
+    elements.pauseOverlay
+        .querySelector(
+            "p"
+        );
+
+if (pauseTitle) {
+    pauseTitle.textContent =
+        t("pause");
+}
+
+if (pauseDescription) {
+    pauseDescription.textContent =
+        t("gameStopped");
+}
+    }
+
+    /*
+     * Re-render field labels.
+     */
+
+    updateLives();
+
+    updateSmartHint(
+        getHintCells()
+    );
+
+
+
+/* =========================================================
+   DIFFICULTY DESCRIPTIONS
+   ========================================================= */
+
+function getDifficultyDescription(
+    difficulty
+) {
+    const keyMap = {
+        easy: "easyDesc",
+        medium: "mediumDesc",
+        hard: "hardDesc",
+        expert: "expertDesc",
+        extreme: "extremeDesc"
+    };
+
+    return t(
+        keyMap[
+            difficulty
+        ] || "mediumDesc"
+    );
+}
+
+
+/* =========================================================
+   PALETTE HANDLING
+   ========================================================= */
+
+function setPalette(
+    palette
+) {
+    if (
+        !PALETTES[palette]
+    ) {
+        return;
+    }
+
+    state.settings.palette =
+        palette;
+
+    saveSettings();
+
+    applyPalette();
+
+    renderPaletteOptions();
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+   ========================================================= */
+
+function escapeHTML(
+    value
+) {
+    return String(value)
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
+}
+
+
+/* =========================================================
+   RGBA COLOR
+   ========================================================= */
+
+function rgba(
+    hex,
+    alpha
+) {
+    const clean =
+        hex.replace(
+            "#",
+            ""
+        );
+
+    const r =
+        parseInt(
+            clean.substring(
+                0,
+                2
+            ),
+            16
+        );
+
+    const g =
+        parseInt(
+            clean.substring(
+                2,
+                4
+            ),
+            16
+        );
+
+    const b =
+        parseInt(
+            clean.substring(
+                4,
+                6
+            ),
+            16
+        );
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+
+/* =========================================================
+   SETTINGS UI
+   ========================================================= */
+
+function updateSettingsUI() {
+    elements.soundToggle.checked =
+        state.settings.sound;
+
+    elements.vibrationToggle.checked =
+        state.settings.vibration;
+
+    /*
+     * Theme.
+     */
+
+    const themeButtons =
+        elements.themeSelector
+            .querySelectorAll(
+                ".theme-option"
+            );
+
+    themeButtons.forEach(
+        button => {
+            const active =
+                button.dataset.theme ===
+                state.settings.theme;
+
+            button.classList.toggle(
+                "active",
+                active
+            );
+
+            button.setAttribute(
+                "aria-pressed",
+                String(active)
+            );
+        }
+    );
+
+    renderLanguageOptions();
+
+    renderPaletteOptions();
+}
+
+
+/* =========================================================
+   DIFFICULTY LABEL
+   ========================================================= */
+
+function updateDifficultyLabel() {
+    const difficulty =
+        DIFFICULTIES[
+            state.difficulty
+        ];
+
+    if (!difficulty) {
+        return;
+    }
+
+    elements.difficultyLabel.textContent =
+        t(
+            state.difficulty
+        );
+}
+
+
+/* =========================================================
+   END OF PART 3
+   ========================================================= */
+   /* =========================================================
+   WIN / GAME OVER
+   ========================================================= */
+
+function checkForWin() {
+    /*
+     * Победа только тогда, когда ВСЕ 81 клетки
+     * совпадают с единственным проверенным решением.
+     */
+
+    for (
+        let index = 0;
+        index < CELL_COUNT;
+        index++
+    ) {
+        if (
+            state.board[index] !==
+            state.solution[index]
+        ) {
+            return false;
+        }
+    }
+
+    /*
+     * Перед победой выполняем финальную
+     * независимую проверку поля.
+     */
+
+    if (
+        !validateCompleteGrid(
+            state.board
+        )
+    ) {
+        return false;
+    }
+
+    finishWin();
+
+    return true;
+}
+
+
+function finishWin() {
+    if (
+        state.isWon
+    ) {
+        return;
+    }
+
+    state.isWon = true;
+
+    state.isPaused = false;
+
+    /*
+     * Фиксируем окончательное время
+     * и полностью останавливаем таймер.
+     */
+
+    state.elapsedMs =
+        getElapsedMs();
+
+    state.startedAt = null;
+
+    updateTimer();
+
+    registerWin();
+
+    elements.winTime.textContent =
+        formatTime(
+            state.elapsedMs
+        );
+
+    /*
+     * Завершенную игру нет смысла
+     * хранить как "продолжение".
+     */
+
+    deleteCurrentGame();
+
+    elements.app.classList.remove(
+        "game-paused"
+    );
+
+    elements.boardWrapper.classList.remove(
+        "paused"
+    );
+
+    renderBoard();
+
+    playWinSound();
+
+    vibrate([
+        100,
+        55,
+        120,
+        55,
+        220,
+        80,
+        120
+    ]);
+
+    showOverlay(
+        elements.winOverlay
+    );
+}
+
+
+function finishGameOver() {
+    if (
+        state.isGameOver
+    ) {
+        return;
+    }
+
+    state.isGameOver = true;
+
+    state.isPaused = false;
+
+    /*
+     * Время фиксируем.
+     */
+
+    state.elapsedMs =
+        getElapsedMs();
+
+    state.startedAt = null;
+
+    updateTimer();
+
+    /*
+     * Game Over означает завершение
+     * партии.
+     *
+     * В отличие от старой версии,
+     * мы НЕ оставляем эту проигранную
+     * партию как активное сохранение.
+     */
+
+    deleteCurrentGame();
+
+    elements.app.classList.remove(
+        "game-paused"
+    );
+
+    elements.boardWrapper.classList.remove(
+        "paused"
+    );
+
+    renderBoard();
+
+    showOverlay(
+        elements.gameOverOverlay
+    );
+}
+
+
+/* =========================================================
+   PAUSE
+   ========================================================= */
+
+function togglePause() {
+    if (
+        state.isWon ||
+        state.isGameOver
+    ) {
+        return;
+    }
+
+    if (
+        state.isPaused
+    ) {
+        resumeGame();
+    } else {
+        pauseGame();
+    }
+}
+
+
+function pauseGame() {
+    if (
+        state.isPaused ||
+        state.isWon ||
+        state.isGameOver
+    ) {
+        return;
+    }
+
+    /*
+     * Сохраняем уже набранное время.
+     *
+     * После этого startedAt обнуляется,
+     * поэтому время физически перестает идти.
+     */
+
+    state.elapsedMs =
+        getElapsedMs();
+
+    state.startedAt = null;
+
+    state.isPaused = true;
+
+    saveCurrentGame();
+
+    elements.app.classList.add(
+        "game-paused"
+    );
+
+    elements.boardWrapper.classList.add(
+        "paused"
+    );
+
+    showOverlay(
+        elements.pauseOverlay
+    );
+
+    renderBoard();
+}
+
+
+function resumeGame() {
+    if (
+        !state.isPaused ||
+        state.isWon ||
+        state.isGameOver
+    ) {
+        return;
+    }
+
+    state.isPaused = false;
+
+    /*
+     * Новый отсчет начинается именно
+     * с момента возврата из паузы.
+     *
+     * Уже накопленное время находится
+     * в state.elapsedMs.
+     */
+
+    state.startedAt =
+        Date.now();
+
+    elements.app.classList.remove(
+        "game-paused"
+    );
+
+    elements.boardWrapper.classList.remove(
+        "paused"
+    );
+
+    hideOverlay(
+        elements.pauseOverlay
+    );
+
+    saveCurrentGame();
+
+    updateTimer();
+
+    renderBoard();
 }
 
 
 /* =========================================================
    TIMER
    ========================================================= */
+
+function startIntervals() {
+    stopIntervals();
+
+    /*
+     * Частое обновление необходимо только
+     * для отображения секунд.
+     *
+     * Сам расчет времени идет через
+     * Date.now(), поэтому интервалы
+     * не влияют на точность таймера.
+     */
+
+    timerInterval =
+        window.setInterval(
+            updateTimer,
+            250
+        );
+
+    /*
+     * Периодическое сохранение.
+     */
+
+    saveInterval =
+        window.setInterval(
+            saveCurrentGame,
+            5000
+        );
+}
+
+
+function stopIntervals() {
+    if (
+        timerInterval !== null
+    ) {
+        window.clearInterval(
+            timerInterval
+        );
+
+        timerInterval = null;
+    }
+
+    if (
+        saveInterval !== null
+    ) {
+        window.clearInterval(
+            saveInterval
+        );
+
+        saveInterval = null;
+    }
+}
+
 
 function getElapsedMs() {
     let elapsed =
@@ -3880,9 +6177,12 @@ function getElapsedMs() {
             ) || 0
         );
 
+    /*
+     * Добавляем только время активной игры.
+     */
+
     if (
-        state.startedAt !==
-            null &&
+        state.startedAt !== null &&
         !state.isPaused &&
         !state.isWon &&
         !state.isGameOver
@@ -3892,24 +6192,28 @@ function getElapsedMs() {
             state.startedAt;
     }
 
-    return Math.floor(
-        Math.max(
-            0,
+    return Math.max(
+        0,
+        Math.floor(
             elapsed
         )
     );
 }
 
+
 function updateTimer() {
     if (
-        elements.timer
+        !elements.timer
     ) {
-        elements.timer.textContent =
-            formatTime(
-                getElapsedMs()
-            );
+        return;
     }
+
+    elements.timer.textContent =
+        formatTime(
+            getElapsedMs()
+        );
 }
+
 
 function formatTime(
     milliseconds
@@ -3938,231 +6242,109 @@ function formatTime(
     const seconds =
         totalSeconds % 60;
 
+    /*
+     * При игре дольше часа
+     * показываем HH:MM:SS.
+     *
+     * Иначе MM:SS.
+     */
+
     if (
         hours > 0
     ) {
         return [
-            pad(hours),
-            pad(minutes),
-            pad(seconds)
+            String(hours).padStart(
+                2,
+                "0"
+            ),
+
+            String(minutes).padStart(
+                2,
+                "0"
+            ),
+
+            String(seconds).padStart(
+                2,
+                "0"
+            )
         ].join(":");
     }
 
     return [
-        pad(minutes),
-        pad(seconds)
+        String(minutes).padStart(
+            2,
+            "0"
+        ),
+
+        String(seconds).padStart(
+            2,
+            "0"
+        )
     ].join(":");
 }
 
-function pad(
-    value
-) {
-    return String(
-        value
-    ).padStart(
-        2,
-        "0"
-    );
-}
-
-function startIntervals() {
-    clearInterval(
-        timerHandle
-    );
-
-    clearInterval(
-        saveHandle
-    );
-
-    timerHandle =
-        setInterval(
-            updateTimer,
-            250
-        );
-
-    saveHandle =
-        setInterval(
-            () => {
-                if (
-                    !state.isWon &&
-                    !state.isGameOver
-                ) {
-                    saveCurrentGame();
-                }
-            },
-            5000
-        );
-}
-
 
 /* =========================================================
-   PAUSE
+   APP VISIBILITY
    ========================================================= */
 
-function pauseGame() {
+/*
+ * Важный момент для Android.
+ *
+ * Когда приложение уходит в фон,
+ * мы принудительно фиксируем уже
+ * прошедшее время и убираем startedAt.
+ *
+ * Когда приложение возвращается,
+ * новый отсчет начинается с текущего
+ * момента.
+ *
+ * Таким образом:
+ *
+ * 10:00 -> свернули приложение
+ *       -> прошло 3 часа
+ *       -> открыли
+ *       -> таймер не прыгнул на 3:10:00
+ *
+ * Это особенно важно для PWA на Android.
+ */
+
+function handleVisibilityChange() {
     if (
-        state.isPaused ||
-        state.isWon ||
-        state.isGameOver
+        document.visibilityState ===
+        "hidden"
     ) {
+        if (
+            !state.isPaused &&
+            !state.isWon &&
+            !state.isGameOver &&
+            state.startedAt !== null
+        ) {
+            state.elapsedMs =
+                getElapsedMs();
+
+            state.startedAt = null;
+        }
+
+        saveCurrentGame();
+
         return;
     }
-
-    state.elapsedMs =
-        getElapsedMs();
-
-    state.startedAt =
-        null;
-
-    state.isPaused =
-        true;
-
-    saveCurrentGame();
-
-    elements.app.classList.add(
-        "game-paused"
-    );
-
-    elements.boardWrapper.classList.add(
-        "paused"
-    );
-
-    showOverlay(
-        elements.pauseOverlay
-    );
-
-    renderBoard();
-}
-
-function resumeGame() {
-    if (
-        !state.isPaused ||
-        state.isWon ||
-        state.isGameOver
-    ) {
-        return;
-    }
-
-    state.isPaused =
-        false;
-
-    state.startedAt =
-        Date.now();
-
-    hidePauseState();
-
-    hideOverlay(
-        elements.pauseOverlay
-    );
-
-    saveCurrentGame();
-
-    renderBoard();
-
-    updateTimer();
-}
-
-function hidePauseState() {
-    elements.app.classList.remove(
-        "game-paused"
-    );
-
-    elements.boardWrapper.classList.remove(
-        "paused"
-    );
-}
-
-
-/* =========================================================
-   WIN / GAME OVER
-   ========================================================= */
-
-function finishWin() {
-    if (
-        state.isWon
-    ) {
-        return;
-    }
-
-    state.elapsedMs =
-        getElapsedMs();
-
-    state.startedAt =
-        null;
-
-    state.isPaused =
-        false;
-
-    state.isWon =
-        true;
-
-    updateTimer();
-
-    registerWin();
-
-    elements.winTime.textContent =
-        formatTime(
-            state.elapsedMs
-        );
-
-    deleteCurrentGame();
-
-    hidePauseState();
-
-    renderBoard();
-
-    playWinSound();
-
-    vibrate([
-        100,
-        55,
-        120,
-        55,
-        220,
-        80,
-        120
-    ]);
-
-    showOverlay(
-        elements.winOverlay
-    );
-}
-
-function finishGameOver() {
-    if (
-        state.isGameOver
-    ) {
-        return;
-    }
-
-    state.elapsedMs =
-        getElapsedMs();
-
-    state.startedAt =
-        null;
-
-    state.isPaused =
-        false;
-
-    state.isGameOver =
-        true;
-
-    updateTimer();
 
     /*
-     * Проигранная партия не становится
-     * сохраненной активной партией.
+     * Возвратились в приложение.
      */
 
-    deleteCurrentGame();
+    if (
+        !state.isPaused &&
+        !state.isWon &&
+        !state.isGameOver
+    ) {
+        state.startedAt =
+            Date.now();
+    }
 
-    hidePauseState();
-
-    renderBoard();
-
-    showOverlay(
-        elements.gameOverOverlay
-    );
+    updateTimer();
 }
 
 
@@ -4171,33 +6353,42 @@ function finishGameOver() {
    ========================================================= */
 
 function openPanel(
-    name
+    panel
 ) {
+    /*
+     * Нельзя открыть боковую панель
+     * поверх модального окна новой игры.
+     */
+
     closeModals();
 
-    const settings =
-        name ===
-        "settings";
+    if (
+        panel === "settings"
+    ) {
+        elements.settingsPanel.classList.add(
+            "open"
+        );
 
-    elements.settingsPanel.classList.toggle(
-        "open",
-        settings
-    );
+        elements.settingsPanel.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+    }
 
-    elements.statsPanel.classList.toggle(
-        "open",
-        !settings
-    );
+    if (
+        panel === "stats"
+    ) {
+        updateStatisticsUI();
 
-    elements.settingsPanel.setAttribute(
-        "aria-hidden",
-        String(!settings)
-    );
+        elements.statsPanel.classList.add(
+            "open"
+        );
 
-    elements.statsPanel.setAttribute(
-        "aria-hidden",
-        String(settings)
-    );
+        elements.statsPanel.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+    }
 
     elements.panelBackdrop.classList.add(
         "visible"
@@ -4209,18 +6400,19 @@ function openPanel(
     );
 }
 
+
 function closePanels() {
     elements.settingsPanel.classList.remove(
-        "open"
-    );
-
-    elements.statsPanel.classList.remove(
         "open"
     );
 
     elements.settingsPanel.setAttribute(
         "aria-hidden",
         "true"
+    );
+
+    elements.statsPanel.classList.remove(
+        "open"
     );
 
     elements.statsPanel.setAttribute(
@@ -4240,16 +6432,13 @@ function closePanels() {
 
 
 /* =========================================================
-   MODALS
+   DIFFICULTY MODAL
    ========================================================= */
 
 function openDifficultyModal(
-    difficulty =
+    selectedDifficulty =
         state.difficulty
 ) {
-    pendingDifficulty =
-        difficulty;
-
     closePanels();
 
     hideOverlay(
@@ -4264,6 +6453,9 @@ function openDifficultyModal(
         elements.winOverlay
     );
 
+    pendingDifficulty =
+        selectedDifficulty;
+
     updateDifficultySelection();
 
     elements.difficultyModal.classList.add(
@@ -4276,6 +6468,7 @@ function openDifficultyModal(
     );
 }
 
+
 function closeDifficultyModal() {
     elements.difficultyModal.classList.remove(
         "visible"
@@ -4287,22 +6480,32 @@ function closeDifficultyModal() {
     );
 }
 
+
 function updateDifficultySelection() {
-    elements.difficultyList
-        .querySelectorAll(
-            ".difficulty-option"
-        )
-        .forEach(
-            option => {
-                option.classList.toggle(
-                    "active",
-                    option.dataset
-                        .difficulty ===
-                        pendingDifficulty
-                );
-            }
-        );
+    const options =
+        elements.difficultyList
+            .querySelectorAll(
+                ".difficulty-option"
+            );
+
+    options.forEach(
+        option => {
+            const active =
+                option.dataset.difficulty ===
+                pendingDifficulty;
+
+            option.classList.toggle(
+                "active",
+                active
+            );
+        }
+    );
 }
+
+
+/* =========================================================
+   CONFIRM MODAL
+   ========================================================= */
 
 function openConfirmModal(
     title,
@@ -4328,6 +6531,7 @@ function openConfirmModal(
     );
 }
 
+
 function closeConfirmModal() {
     elements.confirmModal.classList.remove(
         "visible"
@@ -4342,13 +6546,21 @@ function closeConfirmModal() {
         null;
 }
 
+
 function closeModals() {
     closeDifficultyModal();
+
     closeConfirmModal();
 }
 
+
+/* =========================================================
+   GENERAL LAYER CLOSE
+   ========================================================= */
+
 function closeAllLayers() {
     closePanels();
+
     closeModals();
 
     hideOverlay(
@@ -4363,30 +6575,42 @@ function closeAllLayers() {
         elements.winOverlay
     );
 
-    hidePauseState();
+    elements.app.classList.remove(
+        "game-paused"
+    );
+
+    elements.boardWrapper.classList.remove(
+        "paused"
+    );
 }
 
+
+/* =========================================================
+   OVERLAYS
+   ========================================================= */
+
 function showOverlay(
-    element
+    overlay
 ) {
-    element.classList.add(
+    overlay.classList.add(
         "visible"
     );
 
-    element.setAttribute(
+    overlay.setAttribute(
         "aria-hidden",
         "false"
     );
 }
 
+
 function hideOverlay(
-    element
+    overlay
 ) {
-    element.classList.remove(
+    overlay.classList.remove(
         "visible"
     );
 
-    element.setAttribute(
+    overlay.setAttribute(
         "aria-hidden",
         "true"
     );
@@ -4394,75 +6618,248 @@ function hideOverlay(
 
 
 /* =========================================================
-   FLASH + TOAST
+   FOCUS CELL
    ========================================================= */
 
-function flashCell(
-    index,
-    className
+function focusCell(
+    index
 ) {
     const cell =
-        elements.sudokuBoard.querySelector(
-            `.cell[data-index="${index}"]`
-        );
+        elements.sudokuBoard
+            .querySelector(
+                `.cell[data-index="${index}"]`
+            );
 
-    if (!cell) {
+    if (
+        cell
+    ) {
+        cell.focus({
+            preventScroll: true
+        });
+    }
+}
+
+
+/* =========================================================
+   KEYBOARD BOARD NAVIGATION
+   ========================================================= */
+
+function handleBoardKeyboard(
+    event
+) {
+    if (
+        state.selectedIndex ===
+        null
+    ) {
         return;
     }
 
-    cell.classList.remove(
-        className
-    );
+    const index =
+        state.selectedIndex;
 
-    void cell.offsetWidth;
+    let nextIndex =
+        index;
 
-    cell.classList.add(
-        className
-    );
+    switch (
+        event.key
+    ) {
+        case "ArrowUp":
+            if (
+                index >= 9
+            ) {
+                nextIndex =
+                    index - 9;
+            }
+            break;
 
-    setTimeout(
-        () => {
-            cell.classList.remove(
-                className
-            );
-        },
-        340
-    );
+        case "ArrowDown":
+            if (
+                index < 72
+            ) {
+                nextIndex =
+                    index + 9;
+            }
+            break;
+
+        case "ArrowLeft":
+            if (
+                index % 9 > 0
+            ) {
+                nextIndex =
+                    index - 1;
+            }
+            break;
+
+        case "ArrowRight":
+            if (
+                index % 9 < 8
+            ) {
+                nextIndex =
+                    index + 1;
+            }
+            break;
+
+        default:
+            return;
+    }
+
+    event.preventDefault();
+
+    if (
+        nextIndex !== index
+    ) {
+        handleCellSelection(
+            nextIndex
+        );
+
+        focusCell(
+            nextIndex
+        );
+    }
 }
 
-function showToast(
-    message
+
+/* =========================================================
+   GLOBAL KEYBOARD
+   ========================================================= */
+
+function handleGlobalKeyboard(
+    event
 ) {
-    elements.toastMessage.textContent =
-        message;
+    const activeElement =
+        document.activeElement;
 
-    elements.toast.classList.add(
-        "visible"
-    );
+    /*
+     * Не перехватываем клавиатуру,
+     * если пользователь находится
+     * внутри поля ввода.
+     */
 
-    elements.toast.setAttribute(
-        "aria-hidden",
-        "false"
-    );
-
-    clearTimeout(
-        toastHandle
-    );
-
-    toastHandle =
-        setTimeout(
-            () => {
-                elements.toast.classList.remove(
-                    "visible"
-                );
-
-                elements.toast.setAttribute(
-                    "aria-hidden",
-                    "true"
-                );
-            },
-            1800
+    const isTyping =
+        activeElement &&
+        (
+            activeElement.tagName ===
+                "INPUT" ||
+            activeElement.tagName ===
+                "TEXTAREA" ||
+            activeElement.tagName ===
+                "SELECT"
         );
+
+    if (
+        isTyping
+    ) {
+        return;
+    }
+
+    /*
+     * Цифры 1..9.
+     */
+
+    if (
+        event.key >= "1" &&
+        event.key <= "9"
+    ) {
+        event.preventDefault();
+
+        handleNumberInput(
+            Number(
+                event.key
+            )
+        );
+
+        return;
+    }
+
+    /*
+     * Backspace / Delete / 0
+     */
+
+    if (
+        event.key ===
+            "Backspace" ||
+        event.key ===
+            "Delete" ||
+        event.key === "0"
+    ) {
+        event.preventDefault();
+
+        eraseSelected();
+
+        return;
+    }
+
+    /*
+     * N = карандаш.
+     */
+
+    if (
+        event.key.toLowerCase() ===
+        "n"
+    ) {
+        event.preventDefault();
+
+        toggleNotesMode();
+
+        return;
+    }
+
+    /*
+     * Escape закрывает верхний
+     * слой интерфейса.
+     */
+
+    if (
+        event.key ===
+        "Escape"
+    ) {
+        if (
+            elements.confirmModal.classList
+                .contains(
+                    "visible"
+                )
+        ) {
+            closeConfirmModal();
+
+            return;
+        }
+
+        if (
+            elements.difficultyModal.classList
+                .contains(
+                    "visible"
+                )
+        ) {
+            closeDifficultyModal();
+
+            return;
+        }
+
+        if (
+            elements.settingsPanel.classList
+                .contains(
+                    "open"
+                ) ||
+            elements.statsPanel.classList
+                .contains(
+                    "open"
+                )
+        ) {
+            closePanels();
+
+            return;
+        }
+
+        if (
+            state.isPaused
+        ) {
+            resumeGame();
+
+            return;
+        }
+
+        togglePause();
+    }
 }
 
 
@@ -4471,6 +6868,10 @@ function showToast(
    ========================================================= */
 
 function bindEvents() {
+    /*
+     * Игровое поле.
+     */
+
     elements.sudokuBoard.addEventListener(
         "click",
         event => {
@@ -4479,22 +6880,33 @@ function bindEvents() {
                     ".cell"
                 );
 
-            if (!cell) {
+            if (
+                !cell
+            ) {
                 return;
             }
 
-            selectCell(
+            const index =
                 Number(
                     cell.dataset.index
-                )
+                );
+
+            handleCellSelection(
+                index
             );
         }
     );
+
 
     elements.sudokuBoard.addEventListener(
         "keydown",
         handleBoardKeyboard
     );
+
+
+    /*
+     * Number pad.
+     */
 
     elements.numberPad.addEventListener(
         "click",
@@ -4504,36 +6916,31 @@ function bindEvents() {
                     ".number-button"
                 );
 
-            if (!button) {
-                return;
-            }
-
-            inputNumber(
-                Number(
-                    button.dataset.number
-                )
-            );
-        }
-    );
-
-    elements.notesButton.addEventListener(
-        "click",
-        () => {
             if (
-                state.isPaused ||
-                state.isWon ||
-                state.isGameOver
+                !button
             ) {
                 return;
             }
 
-            state.notesMode =
-                !state.notesMode;
+            const number =
+                Number(
+                    button.dataset.number
+                );
 
-            updateNotesButton();
-
-            saveCurrentGame();
+            handleNumberInput(
+                number
+            );
         }
+    );
+
+
+    /*
+     * Tools.
+     */
+
+    elements.notesButton.addEventListener(
+        "click",
+        toggleNotesMode
     );
 
     elements.eraseButton.addEventListener(
@@ -4544,27 +6951,31 @@ function bindEvents() {
     elements.newGameButton.addEventListener(
         "click",
         () => {
-            openDifficultyModal();
+            openDifficultyModal(
+                state.difficulty
+            );
         }
     );
 
+
+    /*
+     * Pause.
+     */
+
     elements.pauseButton.addEventListener(
         "click",
-        () => {
-            if (
-                state.isPaused
-            ) {
-                resumeGame();
-            } else {
-                pauseGame();
-            }
-        }
+        togglePause
     );
 
     elements.resumeButton.addEventListener(
         "click",
         resumeGame
     );
+
+
+    /*
+     * Settings.
+     */
 
     elements.settingsButton.addEventListener(
         "click",
@@ -4575,6 +6986,16 @@ function bindEvents() {
         }
     );
 
+    elements.closeSettingsButton.addEventListener(
+        "click",
+        closePanels
+    );
+
+
+    /*
+     * Statistics.
+     */
+
     elements.statsButton.addEventListener(
         "click",
         () => {
@@ -4582,11 +7003,6 @@ function bindEvents() {
                 "stats"
             );
         }
-    );
-
-    elements.closeSettingsButton.addEventListener(
-        "click",
-        closePanels
     );
 
     elements.closeStatsButton.addEventListener(
@@ -4599,6 +7015,11 @@ function bindEvents() {
         closePanels
     );
 
+
+    /*
+     * Theme.
+     */
+
     elements.themeSelector.addEventListener(
         "click",
         event => {
@@ -4607,12 +7028,29 @@ function bindEvents() {
                     ".theme-option"
                 );
 
-            if (!button) {
+            if (
+                !button
+            ) {
+                return;
+            }
+
+            const theme =
+                button.dataset.theme;
+
+            if (
+                ![
+                    "system",
+                    "light",
+                    "dark"
+                ].includes(
+                    theme
+                )
+            ) {
                 return;
             }
 
             state.settings.theme =
-                button.dataset.theme;
+                theme;
 
             saveSettings();
 
@@ -4624,48 +7062,74 @@ function bindEvents() {
         }
     );
 
+
+    /*
+     * Dynamic language selector.
+     */
+
     elements.settingsPanel.addEventListener(
         "click",
         event => {
-            const language =
+            const languageButton =
                 event.target.closest(
                     ".language-option"
                 );
 
             if (
-                language
+                languageButton
             ) {
-                state.settings.language =
-                    language.dataset.language;
+                const language =
+                    languageButton.dataset
+                        .language;
 
-                saveSettings();
+                if (
+                    I18N[language]
+                ) {
+                    state.settings.language =
+                        language;
 
-                updateLanguageUI();
+                    saveSettings();
+
+                    updateSettingsUI();
+
+                    updateLanguageUI();
+
+                    updateStatisticsUI();
+
+                    renderBoard();
+
+                    showToast(
+                        I18N[
+                            language
+                        ].title
+                    );
+                }
 
                 return;
             }
 
-            const palette =
+            const paletteButton =
                 event.target.closest(
                     ".palette-option"
                 );
 
             if (
-                palette
+                paletteButton
             ) {
-                state.settings.palette =
-                    palette.dataset.palette;
+                setPalette(
+                    paletteButton.dataset
+                        .palette
+                );
 
-                saveSettings();
-
-                applyTheme();
-
-                updateSettingsUI();
-
-                updateLanguageUI();
+                return;
             }
         }
     );
+
+
+    /*
+     * Sound.
+     */
 
     elements.soundToggle.addEventListener(
         "change",
@@ -4679,10 +7143,16 @@ function bindEvents() {
                 state.settings.sound
             ) {
                 ensureAudioContext();
+
                 playPlaceSound();
             }
         }
     );
+
+
+    /*
+     * Vibration.
+     */
 
     elements.vibrationToggle.addEventListener(
         "change",
@@ -4695,12 +7165,17 @@ function bindEvents() {
             if (
                 state.settings.vibration
             ) {
-                vibrate([
-                    15
-                ]);
+                vibrate(
+                    [15]
+                );
             }
         }
     );
+
+
+    /*
+     * Reset saved game.
+     */
 
     elements.clearSavedGameButton.addEventListener(
         "click",
@@ -4709,9 +7184,11 @@ function bindEvents() {
                 t(
                     "resetSaved"
                 ),
+
                 t(
-                    "confirmResetGame"
+                    "resetSavedDesc"
                 ),
+
                 () => {
                     initializeNewGame(
                         state.difficulty
@@ -4729,6 +7206,11 @@ function bindEvents() {
         }
     );
 
+
+    /*
+     * Reset statistics.
+     */
+
     elements.resetStatsButton.addEventListener(
         "click",
         () => {
@@ -4736,16 +7218,18 @@ function bindEvents() {
                 t(
                     "resetStats"
                 ),
+
                 t(
-                    "confirmResetStats"
+                    "resetStatsDesc"
                 ),
+
                 () => {
                     state.stats =
                         cloneStats(
                             DEFAULT_STATS
                         );
 
-                    saveStats();
+                    saveStatistics();
 
                     updateStatisticsUI();
 
@@ -4759,6 +7243,11 @@ function bindEvents() {
         }
     );
 
+
+    /*
+     * Difficulty selection.
+     */
+
     elements.difficultyList.addEventListener(
         "click",
         event => {
@@ -4767,40 +7256,71 @@ function bindEvents() {
                     ".difficulty-option"
                 );
 
-            if (!option) {
-                return;
-            }
-
             if (
-                !DIFFICULTIES[
-                    option.dataset.difficulty
-                ]
+                !option
             ) {
                 return;
             }
 
-            pendingDifficulty =
-                option.dataset.difficulty;
+            const difficulty =
+                option.dataset
+                    .difficulty;
 
-            updateDifficultySelection();
+            if (
+                DIFFICULTIES[
+                    difficulty
+                ]
+            ) {
+                pendingDifficulty =
+                    difficulty;
+
+                updateDifficultySelection();
+            }
         }
     );
+
 
     elements.closeDifficultyButton.addEventListener(
         "click",
         closeDifficultyModal
     );
 
+
+    /*
+     * Start selected difficulty.
+     */
+
     elements.confirmNewGameButton.addEventListener(
         "click",
         () => {
+            /*
+             * Если предыдущая игра уже
+             * завершена, подтверждение
+             * не требуется.
+             */
+
+            if (
+                state.isWon ||
+                state.isGameOver
+            ) {
+                closeDifficultyModal();
+
+                initializeNewGame(
+                    pendingDifficulty
+                );
+
+                return;
+            }
+
             openConfirmModal(
                 t(
-                    "newGameTitle"
+                    "newGame"
                 ),
+
                 t(
-                    "confirmNewGame"
+                    "resetSavedDesc"
                 ),
+
                 () => {
                     closeDifficultyModal();
 
@@ -4812,6 +7332,11 @@ function bindEvents() {
         }
     );
 
+
+    /*
+     * Confirm modal.
+     */
+
     elements.closeConfirmButton.addEventListener(
         "click",
         closeConfirmModal
@@ -4822,45 +7347,78 @@ function bindEvents() {
         closeConfirmModal
     );
 
+
     elements.acceptConfirmButton.addEventListener(
         "click",
         () => {
+            if (
+                typeof confirmCallback !==
+                "function"
+            ) {
+                closeConfirmModal();
+
+                return;
+            }
+
             const callback =
                 confirmCallback;
 
             closeConfirmModal();
 
-            if (
-                typeof callback ===
-                "function"
-            ) {
-                callback();
-            }
+            callback();
         }
     );
+
+
+    /*
+     * Game Over.
+     */
 
     elements.gameOverNewGameButton.addEventListener(
         "click",
         () => {
+            hideOverlay(
+                elements.gameOverOverlay
+            );
+
             openDifficultyModal(
                 state.difficulty
             );
         }
     );
 
+
+    /*
+     * Win.
+     */
+
     elements.winNewGameButton.addEventListener(
         "click",
         () => {
+            hideOverlay(
+                elements.winOverlay
+            );
+
             openDifficultyModal(
                 state.difficulty
             );
         }
     );
+
+
+    /*
+     * Global keyboard.
+     */
 
     document.addEventListener(
         "keydown",
         handleGlobalKeyboard
     );
+
+
+    /*
+     * Android / browser lifecycle.
+     */
 
     document.addEventListener(
         "visibilitychange",
@@ -4876,6 +7434,11 @@ function bindEvents() {
         "beforeunload",
         saveCurrentGame
     );
+
+
+    /*
+     * Смена системной темы.
+     */
 
     const mediaQuery =
         window.matchMedia(
@@ -4894,194 +7457,20 @@ function bindEvents() {
         }
     );
 
+
+    /*
+     * Первый touch/click разблокирует
+     * Web Audio API в мобильном браузере.
+     */
+
     document.addEventListener(
         "pointerdown",
         ensureAudioContext,
         {
-            once:true,
-            passive:true
+            once: true,
+            passive: true
         }
     );
-}
-
-
-/* =========================================================
-   KEYBOARD
-   ========================================================= */
-
-function handleBoardKeyboard(
-    event
-) {
-    if (
-        state.selectedIndex ===
-        null
-    ) {
-        return;
-    }
-
-    const index =
-        state.selectedIndex;
-
-    let next =
-        index;
-
-    if (
-        event.key ===
-        "ArrowUp" &&
-        index >= 9
-    ) {
-        next =
-            index - 9;
-    } else if (
-        event.key ===
-        "ArrowDown" &&
-        index < 72
-    ) {
-        next =
-            index + 9;
-    } else if (
-        event.key ===
-        "ArrowLeft" &&
-        index % 9 > 0
-    ) {
-        next =
-            index - 1;
-    } else if (
-        event.key ===
-        "ArrowRight" &&
-        index % 9 < 8
-    ) {
-        next =
-            index + 1;
-    } else {
-        return;
-    }
-
-    event.preventDefault();
-
-    selectCell(
-        next
-    );
-
-    const cell =
-        elements.sudokuBoard.querySelector(
-            `.cell[data-index="${next}"]`
-        );
-
-    if (cell) {
-        cell.focus({
-            preventScroll:true
-        });
-    }
-}
-
-function handleGlobalKeyboard(
-    event
-) {
-    const tag =
-        document.activeElement?.tagName;
-
-    if (
-        [
-            "INPUT",
-            "TEXTAREA",
-            "SELECT"
-        ].includes(
-            tag
-        )
-    ) {
-        return;
-    }
-
-    if (
-        event.key >= "1" &&
-        event.key <= "9"
-    ) {
-        event.preventDefault();
-
-        inputNumber(
-            Number(
-                event.key
-            )
-        );
-
-        return;
-    }
-
-    if (
-        [
-            "Delete",
-            "Backspace",
-            "0"
-        ].includes(
-            event.key
-        )
-    ) {
-        event.preventDefault();
-
-        eraseSelected();
-
-        return;
-    }
-
-    if (
-        event.key.toLowerCase() ===
-        "n"
-    ) {
-        event.preventDefault();
-
-        elements.notesButton.click();
-
-        return;
-    }
-
-    if (
-        event.key ===
-        "Escape"
-    ) {
-        if (
-            elements.confirmModal
-                .classList
-                .contains(
-                    "visible"
-                )
-        ) {
-            return closeConfirmModal();
-        }
-
-        if (
-            elements.difficultyModal
-                .classList
-                .contains(
-                    "visible"
-                )
-        ) {
-            return closeDifficultyModal();
-        }
-
-        if (
-            elements.settingsPanel
-                .classList
-                .contains(
-                    "open"
-                ) ||
-            elements.statsPanel
-                .classList
-                .contains(
-                    "open"
-                )
-        ) {
-            return closePanels();
-        }
-
-        if (
-            state.isPaused
-        ) {
-            return resumeGame();
-        }
-
-        pauseGame();
-    }
 }
 
 
@@ -5097,41 +7486,44 @@ function ensureAudioContext() {
     }
 
     if (
-        audioContext
+        audioContext === null
     ) {
+        const AudioContext =
+            window.AudioContext ||
+            window.webkitAudioContext;
+
         if (
-            audioContext.state ===
-            "suspended"
+            !AudioContext
         ) {
-            audioContext
-                .resume()
-                .catch(
-                    () => {}
-                );
+            return null;
         }
 
-        return audioContext;
+        try {
+            audioContext =
+                new AudioContext();
+        } catch {
+            return null;
+        }
     }
-
-    const AudioContextClass =
-        window.AudioContext ||
-        window.webkitAudioContext;
 
     if (
-        !AudioContextClass
+        audioContext.state ===
+        "suspended"
     ) {
-        return null;
+        audioContext
+            .resume()
+            .catch(
+                () => {}
+            );
     }
 
-    try {
-        audioContext =
-            new AudioContextClass();
-
-        return audioContext;
-    } catch {
-        return null;
-    }
+    return audioContext;
 }
+
+
+/*
+ * Мягкий звук обычного действия.
+ */
 
 function playPlaceSound() {
     const context =
@@ -5197,6 +7589,11 @@ function playPlaceSound() {
     );
 }
 
+
+/*
+ * Отдельный низкий звук ошибки.
+ */
+
 function playErrorSound() {
     const context =
         ensureAudioContext();
@@ -5229,42 +7626,10 @@ function playErrorSound() {
     );
 }
 
-function playWinSound() {
-    const context =
-        ensureAudioContext();
 
-    if (
-        !context
-    ) {
-        return;
-    }
-
-    const start =
-        context.currentTime;
-
-    const melody = [
-        [523.25,0],
-        [659.25,0.075],
-        [783.99,0.15],
-        [1046.5,0.24]
-    ];
-
-    for (
-        const [
-            frequency,
-            offset
-        ] of melody
-    ) {
-        createTone(
-            context,
-            frequency,
-            0.20,
-            start + offset,
-            0.026,
-            "sine"
-        );
-    }
-}
+/*
+ * Универсальный короткий тон.
+ */
 
 function createTone(
     context,
@@ -5288,6 +7653,14 @@ function createTone(
         start
     );
 
+    oscillator.frequency.exponentialRampToValueAtTime(
+        Math.max(
+            30,
+            frequency * 0.78
+        ),
+        start + duration
+    );
+
     gain.gain.setValueAtTime(
         0.0001,
         start
@@ -5295,7 +7668,7 @@ function createTone(
 
     gain.gain.exponentialRampToValueAtTime(
         volume,
-        start + 0.012
+        start + 0.005
     );
 
     gain.gain.exponentialRampToValueAtTime(
@@ -5316,17 +7689,108 @@ function createTone(
     );
 
     oscillator.stop(
-        start + duration + 0.02
+        start +
+            duration +
+            0.01
     );
 }
+
+
+/*
+ * Небольшая последовательность
+ * при победе.
+ */
+
+function playWinSound() {
+    const context =
+        ensureAudioContext();
+
+    if (
+        !context
+    ) {
+        return;
+    }
+
+    const start =
+        context.currentTime;
+
+    const melody = [
+        [523.25, 0.00],
+        [659.25, 0.075],
+        [783.99, 0.15],
+        [1046.50, 0.24]
+    ];
+
+    melody.forEach(
+        ([frequency, offset]) => {
+            const time =
+                start + offset;
+
+            const oscillator =
+                context.createOscillator();
+
+            const gain =
+                context.createGain();
+
+            oscillator.type =
+                "sine";
+
+            oscillator.frequency.setValueAtTime(
+                frequency,
+                time
+            );
+
+            gain.gain.setValueAtTime(
+                0.0001,
+                time
+            );
+
+            gain.gain.exponentialRampToValueAtTime(
+                0.026,
+                time + 0.012
+            );
+
+            gain.gain.exponentialRampToValueAtTime(
+                0.0001,
+                time + 0.20
+            );
+
+            oscillator.connect(
+                gain
+            );
+
+            gain.connect(
+                context.destination
+            );
+
+            oscillator.start(
+                time
+            );
+
+            oscillator.stop(
+                time + 0.22
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   VIBRATION
+   ========================================================= */
 
 function vibrate(
     pattern
 ) {
     if (
-        !state.settings.vibration ||
+        !state.settings.vibration
+    ) {
+        return;
+    }
+
+    if (
         typeof navigator.vibrate !==
-            "function"
+        "function"
     ) {
         return;
     }
@@ -5336,8 +7800,55 @@ function vibrate(
             pattern
         );
     } catch {
-        /* Unsupported. */
+        /*
+         * Не все браузеры поддерживают
+         * vibration API.
+         */
     }
+}
+
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+function showToast(
+    message
+) {
+    elements.toastMessage.textContent =
+        message;
+
+    elements.toast.classList.add(
+        "visible"
+    );
+
+    elements.toast.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+    if (
+        toastTimeout !== null
+    ) {
+        window.clearTimeout(
+            toastTimeout
+        );
+    }
+
+    toastTimeout =
+        window.setTimeout(
+            () => {
+                elements.toast.classList.remove(
+                    "visible"
+                );
+
+                elements.toast.setAttribute(
+                    "aria-hidden",
+                    "true"
+                );
+            },
+            1800
+        );
 }
 
 
@@ -5361,6 +7872,12 @@ function registerServiceWorker() {
                 )
                 .then(
                     registration => {
+                        /*
+                         * Если сервер уже выдал новую
+                         * версию Service Worker,
+                         * просим браузер проверить обновление.
+                         */
+
                         registration
                             .update()
                             .catch(
@@ -5371,217 +7888,46 @@ function registerServiceWorker() {
                 .catch(
                     error => {
                         console.warn(
-                            "Service Worker:",
+                            "Service Worker не зарегистрирован:",
                             error
                         );
                     }
                 );
         },
         {
-            once:true
+            once: true
         }
     );
 }
 
 
 /* =========================================================
-   VISIBILITY
+   UTILITY
    ========================================================= */
-
-function handleVisibilityChange() {
-    if (
-        document.visibilityState ===
-        "hidden"
-    ) {
-        if (
-            !state.isPaused &&
-            !state.isWon &&
-            !state.isGameOver &&
-            state.startedAt !==
-                null
-        ) {
-            state.elapsedMs =
-                getElapsedMs();
-
-            state.startedAt =
-                null;
-        }
-
-        saveCurrentGame();
-
-        return;
-    }
-
-    if (
-        !state.isPaused &&
-        !state.isWon &&
-        !state.isGameOver
-    ) {
-        state.startedAt =
-            Date.now();
-    }
-
-    updateTimer();
-}
-
-
-/* =========================================================
-   UTILITIES
-   ========================================================= */
-
-function safeGet(
-    key
-) {
-    try {
-        const raw =
-            localStorage.getItem(
-                key
-            );
-
-        return raw
-            ? JSON.parse(raw)
-            : null;
-    } catch {
-        return null;
-    }
-}
-
-function safeSet(
-    key,
-    value
-) {
-    try {
-        localStorage.setItem(
-            key,
-            JSON.stringify(value)
-        );
-    } catch {
-        /* Storage unavailable. */
-    }
-}
 
 function clamp(
     value,
     min,
     max
 ) {
-    const number =
-        Number(value);
-
-    if (
-        !Number.isFinite(
-            number
-        )
-    ) {
-        return min;
-    }
-
     return Math.min(
         max,
         Math.max(
             min,
-            number
+            value
         )
     );
 }
 
-function escapeHTML(
-    value
-) {
-    return String(value)
-        .replaceAll(
-            "&",
-            "&amp;"
-        )
-        .replaceAll(
-            "<",
-            "&lt;"
-        )
-        .replaceAll(
-            ">",
-            "&gt;"
-        )
-        .replaceAll(
-            '"',
-            "&quot;"
-        )
-        .replaceAll(
-            "'",
-            "&#039;"
-        );
-}
 
-function rgba(
-    hex,
-    alpha
-) {
-    const value =
-        hex.replace(
-            "#",
-            ""
-        );
+/* =========================================================
+   INITIAL START
+   ========================================================= */
 
-    const r =
-        parseInt(
-            value.slice(
-                0,
-                2
-            ),
-            16
-        );
-
-    const g =
-        parseInt(
-            value.slice(
-                2,
-                4
-            ),
-            16
-        );
-
-    const b =
-        parseInt(
-            value.slice(
-                4,
-                6
-            ),
-            16
-        );
-
-    return `rgba(${r},${g},${b},${alpha})`;
-}
-
-function shuffleArray(
-    array
-) {
-    const result =
-        [...array];
-
-    for (
-        let index =
-            result.length - 1;
-        index > 0;
-        index--
-    ) {
-        const random =
-            Math.floor(
-                Math.random() *
-                (index + 1)
-            );
-
-        [
-            result[index],
-            result[random]
-        ] = [
-            result[random],
-            result[index]
-        ];
-    }
-
-    return result;
-}
+initialize();
 
 
 /* =========================================================
-   END
+   END OF SCRIPT
    ========================================================= */
+   
