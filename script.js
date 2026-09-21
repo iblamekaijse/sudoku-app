@@ -4170,16 +4170,12 @@ function existsInUnit(
    NUMBER PAD
    ========================================================= */
 
-function updateNumberPad() {
-    const currentValue =
-        state.selectedIndex !== null
-            ? state.board[state.selectedIndex]
-            : 0;
-
+function updateNumberPad(selectedValue) {
     const buttons =
-        elements.numberPad.querySelectorAll(
-            ".number-button"
-        );
+        elements.numberPad
+            .querySelectorAll(
+                ".number-button"
+            );
 
     buttons.forEach(button => {
         const number =
@@ -4192,47 +4188,14 @@ function updateNumberPad() {
                 number
             );
 
-        const remaining =
-            Math.max(
-                0,
-                9 - count
-            );
-
         button.classList.toggle(
             "active-number",
-            currentValue === number
+            selectedValue === number
         );
 
         button.classList.toggle(
             "disabled-number",
-            remaining === 0
-        );
-
-        let counter =
-            button.querySelector(
-                ".number-remaining"
-            );
-
-        if (!counter) {
-            counter =
-                document.createElement(
-                    "span"
-                );
-
-            counter.className =
-                "number-remaining";
-
-            button.appendChild(
-                counter
-            );
-        }
-
-        counter.textContent =
-            String(remaining);
-
-        button.setAttribute(
-            "aria-label",
-            `${number}, осталось ${remaining}`
+            count >= 9
         );
     });
 }
