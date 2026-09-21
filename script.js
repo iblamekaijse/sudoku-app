@@ -4199,19 +4199,13 @@ function updateNumberPad(
 
             button.classList.toggle(
                 "active-number",
-                selectedValue ===
-                    number
+                selectedValue === number
             );
 
             button.classList.toggle(
                 "disabled-number",
                 remaining === 0
             );
-
-            /*
-             * Создаем маленький счетчик
-             * только один раз.
-             */
 
             let counter =
                 button.querySelector(
