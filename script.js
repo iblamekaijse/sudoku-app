@@ -4232,24 +4232,6 @@ function updateNumberPad(selectedValue) {
 
 
 
-function countBoardNumber(
-    number
-) {
-    let count = 0;
-
-    for (
-        const value of state.board
-    ) {
-        if (
-            value === number
-        ) {
-            count++;
-        }
-    }
-
-    return count;
-}
-
 
 /* =========================================================
    CELL INPUT
